@@ -1,0 +1,161 @@
+#!/bin/bash
+#
+# lsinitcpio - dump the contents of an initramfs image
+#
+
+shopt -s extglob
+
+declare verbose=
+declare list='--list'
+declare -i color=1
+declare NC= BOLD= BLUE= GREEN= RED= YELLOW=
+declare FUNCTIONS=/lib/initcpio/functions
+
+usage() {
+    cat<<USAGE
+lsinitramfs 0.8.2
+usage: ${0##*/} [options] <initramfs>
+
+  Options:
+   -a             analyze contents
+   -h             display this help
+   -n             disable colorized output
+   -v             more verbose output
+   -x             extract image to disk
+
+USAGE
+    exit 1
+}
+
+decomp() {
+    ${compress:-cat} ${compress:+-cd} "$@"
+}
+
+. "$FUNCTIONS"
+
+# override the die method from functions
+die() {
+    error "$@"
+    exit 1
+}
+
+while getopts ':ahnvx' flag; do
+    case $flag in
+        a) analyze=1 ;;
+        h) usage ;;
+        n) color=0 ;;
+        v) verbose='--verbose'  ;;
+        x) unset list ;;
+        \?) die "invalid option -- '$OPTARG'" ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+declare image=$1
+
+if [[ -t 1 ]] && (( color )); then
+    # prefer terminal safe colored and bold text when tput is supported
+    if tput setaf 0 &>/dev/null; then
+        NC="$(tput sgr0)"
+        BOLD="$(tput bold)"
+        BLUE="$BOLD$(tput setaf 4)"
+        GREEN="$BOLD$(tput setaf 2)"
+        RED="$BOLD$(tput setaf 1)"
+        YELLOW="$BOLD$(tput setaf 3)"
+    else
+        NC="\e[1;0m"
+        BOLD="\e[1;1m"
+        BLUE="$BOLD\e[1;34m"
+        GREEN="$BOLD\e[1;32m"
+        RED="$BOLD\e[1;31m"
+        YELLOW="$BOLD\e[1;33m"
+    fi
+fi
+readonly NC BOLD BLUE GREEN RED YELLOW
+
+[[ $image ]] || usage
+[[ -f $image ]] || die "$image: No such file"
+
+# read compression type
+case "$(file -Lb "$image")" in
+    @(data|LZMA)*) compress=lzma ;;
+    gzip*) compress=gzip ;;
+    bzip2*) compress=bzip2 ;;
+    lzop*) compress=lzop ;;
+    XZ*) compress=xz ;;
+esac
+
+if (( analyze )); then
+    declare -a binaries explicitmod modules foundhooks hooks
+    declare kernver ratio columns=$(tput cols)
+
+    # calculate compression ratio
+    if [[ $compress ]]; then
+        TIMEFORMAT=%R decomptime=$({ time decomp "$image" >/dev/null; } 2>&1 )
+        ratio=.$(( $(stat -c %s "$image") * 1000 /
+                   $(decomp "$image" | bsdtar xOf - | wc -c) % 1000 ))
+    fi
+
+    # read contents of image
+    while read -r line; do
+        if [[ $line = *.ko?(.gz) ]]; then # module
+            if [[ -z $kernver ]]; then
+                [[ $line =~ /lib/modules/([^/]+)/ ]] && kernver=${BASH_REMATCH[1]}
+            fi
+            line=${line##*/}
+            modules+=("${line%.ko?(.gz)}")
+            continue
+        elif [[ $line = ./hooks/* ]]; then
+            foundhooks+=("${line##*/}")
+        elif [[ $line = *@(/bin/|/sbin/)* ]]; then
+            binaries+=("${line#.}")
+        fi
+    done < <(decomp "$image" | bsdtar tf -)
+
+    read -r version < <(decomp "$image" | bsdtar xOf - VERSION 2>/dev/null)
+
+    # source and read config
+    . <(decomp "$image" | bsdtar xOf - config)
+    explicitmod=($MODULES)
+    for hook in $HOOKS; do
+        in_array "$hook" "${foundhooks[@]}" && hooks+=("$hook")
+    done
+
+    # print results
+    imagename=$image
+    [[ -L $image ]] && imagename+=" -> $(readlink -e "$image")"
+    msg 'Image: %s %s' "$imagename"
+    [[ $version ]] && msg 'Created with mkinitcpio %s' "$version"
+    msg 'Kernel: %s' "${kernver:-unknown}"
+
+    if [[ $compress ]]; then
+        msg 'Compressed with: %s' "$compress"
+        msg2 'Compression ratio: %s' "$ratio"
+        msg2 'Estimated decompression time: %ss' "$decomptime"
+    fi
+    printf '\n'
+
+    if (( ${#modules[*]} )); then
+        msg 'Included modules:'
+        for mod in "${modules[@]}"; do
+            printf '  %s' "$mod"
+            in_array "${mod//_/-}" "${explicitmod[@]//_/-}" && printf ' [explicit]'
+            printf '\n'
+        done | sort | column -c$columns
+        printf '\n'
+    fi
+
+    msg 'Included binaries:'
+    printf '  %s\n' "${binaries[@]##*/}" | sort | column -c$columns
+    printf '\n'
+
+    if (( ${#hooks[*]} )); then
+        msg 'Hook run order:'
+        printf '  %s\n' "${hooks[@]}"
+        printf '\n'
+    fi
+else
+    decomp "$image" | bsdcpio -i --quiet $verbose $list
+fi
+
+# vim: set ft=sh ts=4 sw=4 et:

@@ -1,0 +1,112 @@
+#!/usr/bin/ash
+PATH=/usr/bin
+
+. /init_functions
+
+mount -t proc proc /proc -o nosuid,noexec,nodev
+mount -t sysfs sys /sys -o nosuid,noexec,nodev
+mount -t devtmpfs dev /dev -o mode=0755,nosuid
+mount -t tmpfs run /run -o nosuid,nodev,mode=0755
+mkdir -m755 /run/initramfs
+
+# parse the kernel command line
+parse_cmdline
+
+# if available, start udevd at this stage
+if [ -x /lib/udev/udevd ]; then
+    msg ":: Starting udevd..."
+    /lib/udev/udevd --daemon --resolve-names=never
+    udevd_running=1
+    msg "done."
+else
+    udevd_running=0
+fi
+
+for d in ${disablehooks//,/ }; do
+    eval "hook_${d}=disabled"
+done
+
+earlymodules=${earlymodules//,/ }
+if [ -n "${earlymodules## }" ]; then
+    modprobe -qab ${earlymodules}
+fi
+
+. /config
+
+[ -n "${MODULES## }" ] && modprobe -qab $MODULES
+
+# If rootdelay is empty or not a non-negative integer, set it to 10
+if [ -z "${rootdelay}" ] || ! [ "${rootdelay}" -ge 0 ]; then
+    rootdelay=10
+fi
+
+if [ -e "/hooks" ]; then
+    for h in ${HOOKS}; do
+        TST=""
+        eval "TST=\$hook_${h}"
+        if [ "${TST}" != "disabled" ]; then
+            run_hook () { msg "${h}: no run function defined"; }
+            if [ -e "/hooks/${h}" ]; then
+               . /hooks/${h}
+               msg ":: Running Hook [${h}]"
+               run_hook
+            fi
+        fi
+    done
+fi
+
+# honor the old behavior of break=y as a synonym for break=premount
+if [ "${break}" = "y" ] || [ "${break}" = "premount" ]; then
+    echo ":: Pre-mount break requested, type 'exit' to resume operation"
+    launch_interactive_shell
+fi
+
+rootdev=$(resolve_device "$root") && root=$rootdev
+unset rootdev
+
+[ -z "$skipfsck" ] && fsck_root
+
+# Mount root at /new_root
+${mount_handler:-default_mount_handler} /new_root
+
+init=${init:-/sbin/init}
+if [ "$(stat -c %D /)" = "$(stat -c %D /new_root)" ]; then
+    # Nothing got mounted on /new_root. This is the end, we don't know what to do anymore
+    # We fall back into a shell, but the shell has now PID 1
+    # This way, manual recovery is still possible.
+    err "Failed to mount the real root device."
+    echo "Bailing out, you are on your own. Good luck."
+    echo
+    launch_interactive_shell --exec
+elif [ ! -x "/new_root${init}" ]; then
+    # Successfully mounted /new_root, but ${init} is missing
+    # The same logic as above applies
+    err "Root device mounted successfully, but ${init} does not exist."
+    echo "Bailing out, you are on your own. Good luck."
+    echo
+    launch_interactive_shell --exec
+fi
+
+# mount /usr if it exists
+if [ -f /new_root/etc/fstab ]; then
+    if usr_source=$(findmnt -nero source -s/new_root/etc/fstab /usr); then
+        mountopts=$(findmnt -nero options -s/new_root/etc/fstab /usr)
+        fsck_device "$usr_source"
+        mount "$usr_source" /new_root/usr -o "$mountopts"
+    fi
+fi
+
+if [ "${break}" = "postmount" ]; then
+    echo ":: Post-mount break requested, type 'exit' to resume operation"
+    launch_interactive_shell
+fi
+
+# Stop udevd if is running
+if [ "${udevd_running}" -eq 1 ]; then
+    udevadm control --exit
+    udevadm info --cleanup-db
+fi
+
+exec env -i "TERM=$TERM" /sbin/switch_root /new_root $init "$@"
+
+# vim: set ft=sh ts=4 sw=4 et:

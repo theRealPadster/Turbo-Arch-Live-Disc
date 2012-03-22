@@ -1,0 +1,36 @@
+%NAME%
+zlib
+
+%VERSION%
+1.2.6-1
+
+%DESC%
+Compression library implementing the deflate compression method found in gzip and PKZIP
+
+%URL%
+http://www.zlib.net/
+
+%LICENSE%
+custom
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1327933887
+
+%INSTALLDATE%
+1329698648
+
+%PACKAGER%
+Pierre Schmitz <pierre@archlinux.de>
+
+%SIZE%
+368640
+
+%REASON%
+1
+
+%DEPENDS%
+glibc
+

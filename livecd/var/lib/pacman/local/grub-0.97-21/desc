@@ -1,0 +1,41 @@
+%NAME%
+grub
+
+%VERSION%
+0.97-21
+
+%DESC%
+A GNU multiboot boot loader
+
+%GROUPS%
+base
+
+%URL%
+http://www.gnu.org/software/grub/
+
+%LICENSE%
+GPL
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1320354990
+
+%INSTALLDATE%
+1329698657
+
+%PACKAGER%
+Ronald van Haren <ronald@archlinux.org>
+
+%SIZE%
+2142208
+
+%DEPENDS%
+ncurses
+diffutils
+sed
+
+%OPTDEPENDS%
+xfsprogs: freezing of xfs /boot in install-grub script
+

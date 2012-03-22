@@ -1,0 +1,36 @@
+%NAME%
+libnl
+
+%VERSION%
+3.2.7-1
+
+%DESC%
+Library for applications dealing with netlink sockets
+
+%URL%
+http://www.infradead.org/~tgr/libnl/
+
+%LICENSE%
+GPL
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1328807104
+
+%INSTALLDATE%
+1329698655
+
+%PACKAGER%
+Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
+
+%SIZE%
+1200128
+
+%REASON%
+1
+
+%DEPENDS%
+glibc
+

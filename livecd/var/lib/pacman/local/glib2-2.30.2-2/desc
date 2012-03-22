@@ -1,0 +1,40 @@
+%NAME%
+glib2
+
+%VERSION%
+2.30.2-2
+
+%DESC%
+Common C routines used by GTK+ and other libs
+
+%URL%
+http://www.gtk.org/
+
+%LICENSE%
+LGPL
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1328501787
+
+%INSTALLDATE%
+1329698655
+
+%PACKAGER%
+Allan McRae <allan@archlinux.org>
+
+%SIZE%
+12419072
+
+%REASON%
+1
+
+%DEPENDS%
+pcre
+libffi
+
+%OPTDEPENDS%
+python2: for gdbus-codegen
+

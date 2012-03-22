@@ -1,0 +1,36 @@
+%NAME%
+tzdata
+
+%VERSION%
+2011n-1
+
+%DESC%
+Sources for time zone and daylight saving time data
+
+%URL%
+http://www.twinsun.com/tz/tz-link.htm
+
+%LICENSE%
+GPL
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1320046843
+
+%INSTALLDATE%
+1329698646
+
+%PACKAGER%
+Andreas Radke <andyrtr@archlinux.org>
+
+%SIZE%
+5762048
+
+%REASON%
+1
+
+%OPTDEPENDS%
+bash: required by tzselect
+

@@ -1,0 +1,5 @@
+%FILES%
+sbin/
+sbin/mksquashfs
+sbin/unsquashfs
+

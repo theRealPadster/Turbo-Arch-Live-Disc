@@ -1,0 +1,33 @@
+%NAME%
+licenses
+
+%VERSION%
+2.9-1
+
+%DESC%
+The standard licenses distribution package
+
+%GROUPS%
+base
+
+%URL%
+http://www.archlinux.org/
+
+%LICENSE%
+custom:none
+
+%ARCH%
+any
+
+%BUILDDATE%
+1319731725
+
+%INSTALLDATE%
+1329698658
+
+%PACKAGER%
+Dan McGee <dan@archlinux.org>
+
+%SIZE%
+557056
+

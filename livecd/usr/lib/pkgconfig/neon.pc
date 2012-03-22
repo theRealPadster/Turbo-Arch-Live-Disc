@@ -1,0 +1,11 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: neon
+Description: HTTP/WebDAV client library
+Version: 0.29.6
+Libs.private:  -lz -Wl,-O1,--sort-common,--as-needed,-z,relro,--hash-style=gnu -lssl -lcrypto -ldl -lz   -Wl,-O1,--sort-common,--as-needed,-z,relro,--hash-style=gnu -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err -lexpat
+Libs: -L${libdir} -lneon 
+Cflags: -I${includedir}/neon 

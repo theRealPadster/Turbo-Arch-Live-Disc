@@ -1,0 +1,36 @@
+%NAME%
+libgssglue
+
+%VERSION%
+0.3-1
+
+%DESC%
+Exports a gssapi interface which calls other random gssapi libraries
+
+%URL%
+http://www.citi.umich.edu/projects/nfsv4/linux/
+
+%LICENSE%
+BSD
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1311972599
+
+%INSTALLDATE%
+1329698648
+
+%PACKAGER%
+Tobias Powalowski <tpowa@archlinux.org>
+
+%SIZE%
+233472
+
+%REASON%
+1
+
+%DEPENDS%
+glibc
+

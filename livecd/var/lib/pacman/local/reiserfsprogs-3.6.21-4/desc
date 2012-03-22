@@ -1,0 +1,36 @@
+%NAME%
+reiserfsprogs
+
+%VERSION%
+3.6.21-4
+
+%DESC%
+Reiserfs utilities
+
+%GROUPS%
+base
+
+%URL%
+http://www.kernel.org/
+
+%LICENSE%
+GPL
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1320484731
+
+%INSTALLDATE%
+1329698686
+
+%PACKAGER%
+Pierre Schmitz <pierre@archlinux.de>
+
+%SIZE%
+1056768
+
+%DEPENDS%
+util-linux-ng
+

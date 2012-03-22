@@ -1,0 +1,20 @@
+#!/bin/bash
+
+build(){
+
+    MODULES="$(checked_modules "/scsi/" | grep -vE '(imm|ata|pcmcia)')
+             $(checked_modules "/block/" | grep -E '(cciss|cpqarray|DAC960)')
+             $(checked_modules "/fusion/")"
+
+    [[ $MODULES ]] && MODULES+=" sd_mod?"
+}
+
+help() {
+    cat <<HELPEOF
+This hook loads the necessary modules for an scsi root device. Detection will
+take place at runtime. To minimize the modules in the image, add the autodetect
+hook too.
+HELPEOF
+}
+
+# vim: set ft=sh ts=4 sw=4 et:

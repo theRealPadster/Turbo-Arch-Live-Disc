@@ -1,0 +1,37 @@
+%NAME%
+libisofs
+
+%VERSION%
+1.2.0-1
+
+%DESC%
+Library to pack up hard disk files and directories into a ISO 9660 disk image
+
+%URL%
+http://libburnia.pykix.org/
+
+%LICENSE%
+GPL
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1327852633
+
+%INSTALLDATE%
+1329698897
+
+%PACKAGER%
+Andreas Radke <andyrtr@archlinux.org>
+
+%SIZE%
+552960
+
+%REASON%
+1
+
+%DEPENDS%
+acl
+zlib
+

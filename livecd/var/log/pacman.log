@@ -1,0 +1,151 @@
+[2012-02-19 19:44] installed filesystem (2012.2-2)
+[2012-02-19 19:44] installed dbus-core (1.4.16-1)
+[2012-02-19 19:44] installed libnl (3.2.7-1)
+[2012-02-19 19:44] installed wpa_supplicant (0.7.3-5)
+[2012-02-19 19:44] installed bzip2 (1.0.6-3)
+[2012-02-19 19:44] installed run-parts (4.2.1-1)
+[2012-02-19 19:44] installed cronie (1.4.8-1)
+[2012-02-19 19:44] installed util-linux (2.20.1-2)
+[2012-02-19 19:44] installed libusb (1.0.8-2)
+[2012-02-19 19:44] installed libusb-compat (0.1.3-2)
+[2012-02-19 19:44] installed pcre (8.30-1)
+[2012-02-19 19:44] installed libffi (3.0.10-1)
+[2012-02-19 19:44] installed glib2 (2.30.2-2)
+[2012-02-19 19:44] installed kmod (5-4)
+[2012-02-19 19:44] installed pciutils (3.1.9-1)
+[2012-02-19 19:44] installed usbutils (004-1)
+[2012-02-19 19:44] installed udev (181-2)
+[2012-02-19 19:44] installed device-mapper (2.02.90-1)
+[2012-02-19 19:44] installed libgpg-error (1.10-1)
+[2012-02-19 19:44] installed libgcrypt (1.5.0-1)
+[2012-02-19 19:44] installed popt (1.16-4)
+[2012-02-19 19:44] installed cryptsetup (1.4.1-1)
+[2012-02-19 19:44] installed dhcpcd (5.5.4-1)
+[2012-02-19 19:44] installed diffutils (3.2-1)
+[2012-02-19 19:44] installed e2fsprogs (1.42-1)
+[2012-02-19 19:44] installed file (5.10-1)
+[2012-02-19 19:44] installed gawk (4.0.0-2)
+[2012-02-19 19:44] installed gettext (0.18.1.1-4)
+[2012-02-19 19:44] installed grep (2.10-3)
+[2012-02-19 19:44] installed sed (4.2.1-4)
+[2012-02-19 19:44] installed grub (0.97-21)
+[2012-02-19 19:44] installed libsasl (2.1.23-9)
+[2012-02-19 19:44] installed libfetch (2.33-3)
+[2012-02-19 19:44] installed libldap (2.4.28-2)
+[2012-02-19 19:44] installed keyutils (1.5.5-1)
+[2012-02-19 19:44] installed krb5 (1.9.2-2)
+[2012-02-19 19:44] installed heirloom-mailx (12.5-3)
+[2012-02-19 19:44] installed inetutils (1.9.1-1)
+[2012-02-19 19:44] installed iproute2 (3.2.0-2)
+[2012-02-19 19:44] installed kbd (1.15.3-2)
+[2012-02-19 19:44] installed sysvinit (2.88-3)
+[2012-02-19 19:44] installed initscripts (2012.02.1-1)
+[2012-02-19 19:44] installed sysfsutils (2.1.0-7)
+[2012-02-19 19:44] installed iputils (20101006-2)
+[2012-02-19 19:44] installed jfsutils (1.1.15-3)
+[2012-02-19 19:44] installed less (444-3)
+[2012-02-19 19:44] installed licenses (2.9-1)
+[2012-02-19 19:44] installed linux-firmware (20120205-1)
+[2012-02-19 19:44] installed mkinitcpio-busybox (1.19.2-1)
+[2012-02-19 19:44] installed xz (5.0.3-1)
+[2012-02-19 19:44] installed libarchive (3.0.3-3)
+[2012-02-19 19:44] installed mkinitcpio (0.8.2-2)
+[2012-02-19 19:44] >>> Updating module dependencies. Please wait ...
+[2012-02-19 19:44] >>> Generating initial ramdisk, using mkinitcpio.  Please wait...
+[2012-02-19 19:44] ==> Building image from preset: 'default'
+[2012-02-19 19:44]   -> -k /boot/vmlinuz-linux -c /etc/mkinitcpio.conf -g /boot/initramfs-linux.img
+[2012-02-19 19:44] ==> Starting build: 3.2.6-2-ARCH
+[2012-02-19 19:44]   -> Parsing hook: [base]
+[2012-02-19 19:44]   -> Parsing hook: [udev]
+[2012-02-19 19:44]   -> Parsing hook: [autodetect]
+[2012-02-19 19:44] ==> ERROR: failed to detect root filesystem
+[2012-02-19 19:44]   -> Parsing hook: [pata]
+[2012-02-19 19:44]   -> Parsing hook: [scsi]
+[2012-02-19 19:44]   -> Parsing hook: [sata]
+[2012-02-19 19:44]   -> Parsing hook: [filesystems]
+[2012-02-19 19:44]   -> Parsing hook: [usbinput]
+[2012-02-19 19:44] ==> Generating module dependencies
+[2012-02-19 19:44] ==> Creating gzip initcpio image: /boot/initramfs-linux.img
+[2012-02-19 19:44] ==> Image generation successful
+[2012-02-19 19:44] ==> Building image from preset: 'fallback'
+[2012-02-19 19:44]   -> -k /boot/vmlinuz-linux -c /etc/mkinitcpio.conf -g /boot/initramfs-linux-fallback.img -S autodetect
+[2012-02-19 19:44] ==> Starting build: 3.2.6-2-ARCH
+[2012-02-19 19:44]   -> Parsing hook: [base]
+[2012-02-19 19:44]   -> Parsing hook: [udev]
+[2012-02-19 19:44]   -> Parsing hook: [pata]
+[2012-02-19 19:44]   -> Parsing hook: [scsi]
+[2012-02-19 19:44]   -> Parsing hook: [sata]
+[2012-02-19 19:44]   -> Parsing hook: [filesystems]
+[2012-02-19 19:44]   -> Parsing hook: [usbinput]
+[2012-02-19 19:44] ==> Generating module dependencies
+[2012-02-19 19:44] ==> Creating gzip initcpio image: /boot/initramfs-linux-fallback.img
+[2012-02-19 19:44] ==> Image generation successful
+[2012-02-19 19:44] installed linux (3.2.6-2)
+[2012-02-19 19:44] installed logrotate (3.8.1-1)
+[2012-02-19 19:44] installed lvm2 (2.02.90-1)
+[2012-02-19 19:44] installed man-pages (3.35-1)
+[2012-02-19 19:44] installed mdadm (3.2.3-1)
+[2012-02-19 19:44] installed nano (2.2.6-2)
+[2012-02-19 19:44] installed ca-certificates (20120212-1)
+[2012-02-19 19:44] installed libssh2 (1.4.0-1)
+[2012-02-19 19:44] installed curl (7.24.0-2)
+[2012-02-19 19:44] installed pth (2.0.7-4)
+[2012-02-19 19:44] installed gnupg (1.4.12-1)
+[2012-02-19 19:44] installed libksba (1.2.0-2)
+[2012-02-19 19:44] installed libassuan (2.0.3-1)
+[2012-02-19 19:44] installed pinentry (0.8.1-3)
+[2012-02-19 19:44] installed dirmngr (1.1.0-3)
+[2012-02-19 19:44] installed gnupg2 (2.0.18-1)
+[2012-02-19 19:44] installed gpgme (1.3.1-2)
+[2012-02-19 19:44] installed pacman-mirrorlist (20120211-1)
+[2012-02-19 19:44]  >>> Run `pacman-key --init` to set up your pacman keyring.
+[2012-02-19 19:44] installed pacman (4.0.2-1)
+[2012-02-19 19:44] installed pcmciautils (018-1)
+[2012-02-19 19:44] installed libpcap (1.2.1-2)
+[2012-02-19 19:44] installed ppp (2.4.5-3)
+[2012-02-19 19:44] installed procps (3.2.8-4)
+[2012-02-19 19:44] installed psmisc (22.15-1)
+[2012-02-19 19:44] installed reiserfsprogs (3.6.21-4)
+[2012-02-19 19:44] installed eventlog (0.2.12-3)
+[2012-02-19 19:44] installed syslog-ng (3.3.4-2)
+[2012-02-19 19:44] installed tar (1.26-2)
+[2012-02-19 19:44] installed vi (1:050325-2)
+[2012-02-19 19:44] installed wget (1.13.4-1)
+[2012-02-19 19:44] installed which (2.20-5)
+[2012-02-19 19:44] installed xfsprogs (3.1.7-1)
+[2012-02-20 00:47] Running 'pacman -S devtools libisoburn squashfs-tools'
+[2012-02-20 00:48] installed python (3.2.2-2)
+[2012-02-20 00:48] installed pyalpm (0.5.3-1)
+[2012-02-20 00:48] installed binutils (2.22-4)
+[2012-02-20 00:48] installed namcap (3.2.1-2)
+[2012-02-20 00:48] installed libedit (20110802_3.0-1)
+[2012-02-20 00:48] installed openssh (5.9p1-5)
+[2012-02-20 00:48] installed neon (0.29.6-3)
+[2012-02-20 00:48] installed apr (1.4.5-2)
+[2012-02-20 00:48] installed libltdl (2.4.2-3)
+[2012-02-20 00:48] installed unixodbc (2.3.1-1)
+[2012-02-20 00:48] installed apr-util (1.4.1-1)
+[2012-02-20 00:48] installed sqlite3 (3.7.10-1)
+[2012-02-20 00:48] installed subversion (1.7.2-2)
+[2012-02-20 00:48] installed rsync (3.0.9-2)
+[2012-02-20 00:48] installed devtools (20120215-1)
+[2012-02-20 00:48] installed libburn (1.2.0-1)
+[2012-02-20 00:48] installed libisofs (1.2.0-1)
+[2012-02-20 00:48] installed libisoburn (1.2.0-1)
+[2012-02-20 00:48] installed lzo2 (2.06-1)
+[2012-02-20 00:48] installed squashfs-tools (4.2-1)
+[2012-02-20 02:16] Running 'pacman -Syu'
+[2012-02-20 02:16] synchronizing package lists
+[2012-02-20 02:16] starting full system upgrade
+[2012-02-20 19:50] Running 'pacman -Sy'
+[2012-02-20 19:50] synchronizing package lists
+[2012-02-20 19:50] Running 'pacman -Swdd --noprogressbar --noconfirm core/acl core/attr core/autoconf core/automake core/b43-fwcutter core/bash core/binutils core/bison core/bridge-utils core/btrfs-progs core/bzip2 core/ca-certificates core/cloog core/coreutils core/cracklib core/crda core/cronie core/cryptsetup core/curl core/dash core/db core/dbus-core core/device-mapper core/dhcpcd core/dialog core/diffutils core/dirmngr core/dmraid core/dnsutils core/e2fsprogs core/ed core/eventlog core/expat core/fakeroot core/file core/filesystem core/findutils core/flex core/gawk core/gcc core/gcc-libs core/gdbm core/gettext core/glib2 core/glibc core/gmp core/gnupg core/gnupg2 core/gpgme core/gpm core/grep core/groff core/grub core/gzip core/hdparm core/heirloom-mailx core/iana-etc core/idnkit core/ifenslave core/inetutils core/initscripts core/iproute2 core/iptables core/iputils core/ipw2100-fw core/ipw2200-fw core/isdn4k-utils core/isl core/iw core/jfsutils core/kbd core/keyutils core/kmod core/krb5 core/less core/libarchive core/libassuan core/libcap core/libedit core/libevent core/libfetch core/libffi core/libgcrypt core/libgpg-error core/libgssglue core/libksba core/libldap core/libltdl core/libmpc core/libnl core/libpcap core/libpipeline core/librpcsecgss core/libsasl core/libssh2 core/libtirpc core/libtool core/libusb core/libusb-compat core/licenses core/lilo core/links core/linux core/linux-api-headers core/linux-atm core/linux-docs core/linux-firmware core/linux-headers core/linux-lts core/linux-lts-headers core/logrotate core/lvm2 core/lzo2 core/m4 core/make core/man-db core/man-pages core/mdadm core/mkinitcpio core/mkinitcpio-busybox core/mkinitcpio-nfs-utils core/mlocate core/mpfr core/nano core/ncurses core/net-tools core/netcfg core/nfs-utils core/nfsidmap core/nilfs-utils core/openldap core/openssh core/openssl core/openvpn core/pacman core/pacman-mirrorlist core/pam core/patch core/pciutils core/pcmciautils core/pcre core/perl core/pinentry core/pkg-config core/popt core/ppl core/ppp core/pptpclient core/procinfo-ng core/procps core/psmisc core/pth core/readline core/reiserfsprogs core/rfkill core/rp-pppoe core/rpcbind core/run-parts core/sdparm core/sed core/shadow core/sqlite3 core/sqlite3-doc core/sqlite3-tcl core/sudo core/sysfsutils core/syslinux core/syslog-ng core/sysvinit core/tar core/texinfo core/tzdata core/udev core/usbutils core/util-linux core/vi core/wget core/which core/wireless-regdb core/wireless_tools core/wpa_actiond core/wpa_supplicant core/xfsprogs core/xinetd core/xz core/zd1211-firmware core/zlib'
+[2012-02-24 22:55] Running 'pacman -Sy'
+[2012-02-24 22:55] synchronizing package lists
+[2012-02-24 22:55] Running 'pacman -Swdd --noprogressbar --noconfirm core/acl core/attr core/autoconf core/automake core/b43-fwcutter core/bash core/binutils core/bison core/bridge-utils core/btrfs-progs core/bzip2 core/ca-certificates core/cloog core/coreutils core/cracklib core/crda core/cronie core/cryptsetup core/curl core/dash core/db core/dbus-core core/device-mapper core/dhcpcd core/dialog core/diffutils core/dirmngr core/dmraid core/dnsutils core/e2fsprogs core/ed core/eventlog core/expat core/fakeroot core/file core/filesystem core/findutils core/flex core/gawk core/gcc core/gcc-libs core/gdbm core/gettext core/glib2 core/glibc core/gmp core/gnupg core/gnupg2 core/gpgme core/gpm core/grep core/groff core/grub core/gzip core/hdparm core/heirloom-mailx core/iana-etc core/idnkit core/ifenslave core/inetutils core/initscripts core/iproute2 core/iptables core/iputils core/ipw2100-fw core/ipw2200-fw core/isdn4k-utils core/isl core/iw core/jfsutils core/kbd core/keyutils core/kmod core/krb5 core/less core/libarchive core/libassuan core/libcap core/libedit core/libevent core/libfetch core/libffi core/libgcrypt core/libgpg-error core/libgssglue core/libksba core/libldap core/libltdl core/libmpc core/libnl core/libpcap core/libpipeline core/librpcsecgss core/libsasl core/libssh2 core/libtirpc core/libtool core/libusb core/libusb-compat core/licenses core/lilo core/links core/linux core/linux-api-headers core/linux-atm core/linux-docs core/linux-firmware core/linux-headers core/linux-lts core/linux-lts-headers core/logrotate core/lvm2 core/lzo2 core/m4 core/make core/man-db core/man-pages core/mdadm core/mkinitcpio core/mkinitcpio-busybox core/mkinitcpio-nfs-utils core/mlocate core/mpfr core/nano core/ncurses core/net-tools core/netcfg core/nfs-utils core/nfsidmap core/nilfs-utils core/openldap core/openssh core/openssl core/openvpn core/pacman core/pacman-mirrorlist core/pam core/patch core/pciutils core/pcmciautils core/pcre core/perl core/pinentry core/pkg-config core/popt core/ppl core/ppp core/pptpclient core/procinfo-ng core/procps core/psmisc core/pth core/readline core/reiserfsprogs core/rfkill core/rp-pppoe core/rpcbind core/run-parts core/sdparm core/sed core/shadow core/sqlite3 core/sqlite3-doc core/sqlite3-tcl core/sudo core/sysfsutils core/syslinux core/syslog-ng core/sysvinit core/tar core/texinfo core/tzdata core/udev core/usbutils core/util-linux core/vi core/wget core/which core/wireless-regdb core/wireless_tools core/wpa_actiond core/wpa_supplicant core/xfsprogs core/xinetd core/xz core/zd1211-firmware core/zlib'
+[2012-02-25 21:54] Running 'pacman -Sy'
+[2012-02-25 21:54] synchronizing package lists
+[2012-02-25 21:54] Running 'pacman -Swdd --noprogressbar --noconfirm core/acl core/attr core/autoconf core/automake core/b43-fwcutter core/bash core/binutils core/bison core/bridge-utils core/btrfs-progs core/bzip2 core/ca-certificates core/cloog core/coreutils core/cracklib core/crda core/cronie core/cryptsetup core/curl core/dash core/db core/dbus-core core/device-mapper core/dhcpcd core/dialog core/diffutils core/dirmngr core/dmraid core/dnsutils core/e2fsprogs core/ed core/eventlog core/expat core/fakeroot core/file core/filesystem core/findutils core/flex core/gawk core/gcc core/gcc-libs core/gdbm core/gettext core/glib2 core/glibc core/gmp core/gnupg core/gnupg2 core/gpgme core/gpm core/grep core/groff core/grub core/gzip core/hdparm core/heirloom-mailx core/iana-etc core/idnkit core/ifenslave core/inetutils core/initscripts core/iproute2 core/iptables core/iputils core/ipw2100-fw core/ipw2200-fw core/isdn4k-utils core/isl core/iw core/jfsutils core/kbd core/keyutils core/kmod core/krb5 core/less core/libarchive core/libassuan core/libcap core/libedit core/libevent core/libfetch core/libffi core/libgcrypt core/libgpg-error core/libgssglue core/libksba core/libldap core/libltdl core/libmpc core/libnl core/libpcap core/libpipeline core/librpcsecgss core/libsasl core/libssh2 core/libtirpc core/libtool core/libusb core/libusb-compat core/licenses core/lilo core/links core/linux core/linux-api-headers core/linux-atm core/linux-docs core/linux-firmware core/linux-headers core/linux-lts core/linux-lts-headers core/logrotate core/lvm2 core/lzo2 core/m4 core/make core/man-db core/man-pages core/mdadm core/mkinitcpio core/mkinitcpio-busybox core/mkinitcpio-nfs-utils core/mlocate core/mpfr core/nano core/ncurses core/net-tools core/netcfg core/nfs-utils core/nfsidmap core/nilfs-utils core/openldap core/openssh core/openssl core/openvpn core/pacman core/pacman-mirrorlist core/pam core/patch core/pciutils core/pcmciautils core/pcre core/perl core/pinentry core/pkg-config core/popt core/ppl core/ppp core/pptpclient core/procinfo-ng core/procps core/psmisc core/pth core/readline core/reiserfsprogs core/rfkill core/rp-pppoe core/rpcbind core/run-parts core/sdparm core/sed core/shadow core/sqlite3 core/sqlite3-doc core/sqlite3-tcl core/sudo core/sysfsutils core/syslinux core/syslog-ng core/sysvinit core/tar core/texinfo core/tzdata core/udev core/usbutils core/util-linux core/vi core/wget core/which core/wireless-regdb core/wireless_tools core/wpa_actiond core/wpa_supplicant core/xfsprogs core/xinetd core/xz core/zd1211-firmware core/zlib'
+[2012-03-21 00:25] Running 'pacman -Sy'
+[2012-03-21 00:25] synchronizing package lists
+[2012-03-21 00:25] Running 'pacman -Swdd --noprogressbar --noconfirm core/acl core/attr core/autoconf core/automake core/b43-fwcutter core/bash core/binutils core/bison core/bridge-utils core/btrfs-progs core/bzip2 core/ca-certificates core/cloog core/coreutils core/cracklib core/crda core/cronie core/cryptsetup core/curl core/dash core/db core/dbus-core core/device-mapper core/dhcpcd core/dialog core/diffutils core/dirmngr core/dmraid core/dnsutils core/e2fsprogs core/ed core/eventlog core/expat core/fakeroot core/file core/filesystem core/findutils core/flex core/gawk core/gcc core/gcc-libs core/gdbm core/gettext core/glib2 core/glibc core/gmp core/gnupg core/gnupg2 core/gpgme core/gpm core/grep core/groff core/grub core/gzip core/hdparm core/heirloom-mailx core/iana-etc core/idnkit core/ifenslave core/inetutils core/initscripts core/iproute2 core/iptables core/iputils core/ipw2100-fw core/ipw2200-fw core/isdn4k-utils core/isl core/iw core/jfsutils core/kbd core/keyutils core/kmod core/krb5 core/less core/libarchive core/libassuan core/libcap core/libedit core/libevent core/libfetch core/libffi core/libgcrypt core/libgpg-error core/libgssglue core/libksba core/libldap core/libltdl core/libmpc core/libnl core/libpcap core/libpipeline core/librpcsecgss core/libsasl core/libssh2 core/libtirpc core/libtool core/libusb core/libusb-compat core/licenses core/lilo core/links core/linux core/linux-api-headers core/linux-atm core/linux-docs core/linux-firmware core/linux-headers core/linux-lts core/linux-lts-headers core/logrotate core/lvm2 core/lzo2 core/m4 core/make core/man-db core/man-pages core/mdadm core/mkinitcpio core/mkinitcpio-busybox core/mkinitcpio-nfs-utils core/mlocate core/mpfr core/nano core/ncurses core/net-tools core/netcfg core/nfs-utils core/nfsidmap core/nilfs-utils core/openldap core/openssh core/openssl core/openvpn core/pacman core/pacman-mirrorlist core/pam core/patch core/pciutils core/pcmciautils core/pcre core/perl core/pinentry core/pkg-config core/popt core/ppl core/ppp core/pptpclient core/procinfo-ng core/procps core/psmisc core/pth core/readline core/reiserfsprogs core/rfkill core/rp-pppoe core/rpcbind core/run-parts core/sdparm core/sed core/shadow core/sqlite3 core/sqlite3-doc core/sqlite3-tcl core/sudo core/sysfsutils core/syslinux core/syslog-ng core/sysvinit core/tar core/texinfo core/tzdata core/udev core/usbutils core/util-linux core/vi core/wget core/which core/wireless-regdb core/wireless_tools core/wpa_actiond core/wpa_supplicant core/xfsprogs core/xinetd core/xz core/zd1211-firmware core/zlib'

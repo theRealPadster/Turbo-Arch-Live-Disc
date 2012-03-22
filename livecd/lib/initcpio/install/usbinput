@@ -1,0 +1,16 @@
+#!/bin/bash
+
+build() {
+    MODULES=" $(checked_modules "/usb/host" | grep -ve "_cs" -e "sl811_hcd" -e "isp116x_hcd")"
+    MODULES+=" $(all_modules "/hid/hid-") usbhid?"
+}
+
+help() {
+    cat <<HELPEOF
+This hook loads the necessary modules for an usb input device.  Detection
+will take place at runtime. To minimize the modules in the image, add the
+autodetect hook too.
+HELPEOF
+}
+
+# vim: set ft=sh ts=4 sw=4 et:

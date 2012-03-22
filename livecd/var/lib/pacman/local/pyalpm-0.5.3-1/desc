@@ -1,0 +1,37 @@
+%NAME%
+pyalpm
+
+%VERSION%
+0.5.3-1
+
+%DESC%
+Libalpm bindings for Python 3
+
+%URL%
+http://projects.archlinux.org/users/remy/pyalpm.git/
+
+%LICENSE%
+GPL
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1318714002
+
+%INSTALLDATE%
+1329698896
+
+%PACKAGER%
+Rémy Oudompheng <remy@archlinux.org>
+
+%SIZE%
+249856
+
+%REASON%
+1
+
+%DEPENDS%
+python>=3.2
+pacman>=4
+

@@ -1,0 +1,36 @@
+%NAME%
+jfsutils
+
+%VERSION%
+1.1.15-3
+
+%DESC%
+JFS filesystem utilities
+
+%GROUPS%
+base
+
+%URL%
+http://jfs.sourceforge.net
+
+%LICENSE%
+GPL
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1320238076
+
+%INSTALLDATE%
+1329698658
+
+%PACKAGER%
+Gaetan Bisson <bisson@archlinux.org>
+
+%SIZE%
+1077248
+
+%DEPENDS%
+util-linux-ng
+

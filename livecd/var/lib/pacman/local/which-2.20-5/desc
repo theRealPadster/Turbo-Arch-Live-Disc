@@ -1,0 +1,37 @@
+%NAME%
+which
+
+%VERSION%
+2.20-5
+
+%DESC%
+A utility to show the full path of commands
+
+%GROUPS%
+base
+
+%URL%
+http://www.xs4all.nl/~carlo17/which
+
+%LICENSE%
+GPL3
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1320331070
+
+%INSTALLDATE%
+1329698686
+
+%PACKAGER%
+Allan McRae <allan@archlinux.org>
+
+%SIZE%
+61440
+
+%DEPENDS%
+glibc
+sh
+

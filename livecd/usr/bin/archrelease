@@ -1,0 +1,227 @@
+#!/bin/bash
+
+# Avoid any encoding problems
+export LANG=C
+
+# check if messages are to be printed using color
+unset ALL_OFF BOLD BLUE GREEN RED YELLOW
+if [[ -t 2 ]]; then
+	# prefer terminal safe colored and bold text when tput is supported
+	if tput setaf 0 &>/dev/null; then
+		ALL_OFF="$(tput sgr0)"
+		BOLD="$(tput bold)"
+		BLUE="${BOLD}$(tput setaf 4)"
+		GREEN="${BOLD}$(tput setaf 2)"
+		RED="${BOLD}$(tput setaf 1)"
+		YELLOW="${BOLD}$(tput setaf 3)"
+	else
+		ALL_OFF="\e[1;0m"
+		BOLD="\e[1;1m"
+		BLUE="${BOLD}\e[1;34m"
+		GREEN="${BOLD}\e[1;32m"
+		RED="${BOLD}\e[1;31m"
+		YELLOW="${BOLD}\e[1;33m"
+	fi
+fi
+readonly ALL_OFF BOLD BLUE GREEN RED YELLOW
+
+plain() {
+	local mesg=$1; shift
+	printf "${BOLD}    ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+msg() {
+	local mesg=$1; shift
+	printf "${GREEN}==>${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+msg2() {
+	local mesg=$1; shift
+	printf "${BLUE}  ->${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+warning() {
+	local mesg=$1; shift
+	printf "${YELLOW}==> WARNING:${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+error() {
+	local mesg=$1; shift
+	printf "${RED}==> ERROR:${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+stat_busy() {
+	local mesg=$1; shift
+	printf "${GREEN}==>${ALL_OFF}${BOLD} ${mesg}...${ALL_OFF}" >&2
+}
+
+stat_done() {
+	printf "${BOLD}done${ALL_OFF}\n" >&2
+}
+
+setup_workdir() {
+	[[ -z $WORKDIR ]] && WORKDIR=$(mktemp -d --tmpdir "${0##*/}.XXXXXXXXXX")
+}
+
+cleanup() {
+	trap - EXIT INT QUIT TERM
+
+	[[ -n $WORKDIR ]] && rm -rf "$WORKDIR"
+	[[ $1 ]] && exit $1
+}
+
+abort() {
+	msg 'Aborting...'
+	cleanup 0
+}
+
+die() {
+	error "$*"
+	cleanup 1
+}
+
+trap abort INT QUIT TERM HUP
+trap 'cleanup 0' EXIT
+
+##
+#  usage : in_array( $needle, $haystack )
+# return : 0 - found
+#          1 - not found
+##
+in_array() {
+	local needle=$1; shift
+	local item
+	for item in "$@"; do
+		[[ $item = $needle ]] && return 0 # Found
+	done
+	return 1 # Not Found
+}
+
+##
+#  usage : get_full_version( [$pkgname] )
+# return : full version spec, including epoch (if necessary), pkgver, pkgrel
+##
+get_full_version() {
+	# set defaults if they weren't specified in buildfile
+	pkgbase=${pkgbase:-${pkgname[0]}}
+	epoch=${epoch:-0}
+	if [[ -z $1 ]]; then
+		if [[ $epoch ]] && (( ! $epoch )); then
+			echo $pkgver-$pkgrel
+		else
+			echo $epoch:$pkgver-$pkgrel
+		fi
+	else
+		for i in pkgver pkgrel epoch; do
+			local indirect="${i}_override"
+			eval $(declare -f package_$1 | sed -n "s/\(^[[:space:]]*$i=\)/${i}_override=/p")
+			[[ -z ${!indirect} ]] && eval ${indirect}=\"${!i}\"
+		done
+		if (( ! $epoch_override )); then
+			echo $pkgver_override-$pkgrel_override
+		else
+			echo $epoch_override:$pkgver_override-$pkgrel_override
+		fi
+	fi
+}
+
+_arch=(
+	i686
+	x86_64
+	any
+)
+
+_tags=(
+	core-i686 core-x86_64 core-any
+	extra-i686 extra-x86_64 extra-any
+	multilib-x86_64
+	staging-i686 staging-x86_64 staging-any
+	testing-i686 testing-x86_64 testing-any
+	multilib-testing-x86_64
+	multilib-staging-x86_64
+	community-i686 community-x86_64 community-any
+	community-staging-i686 community-staging-x86_64 community-staging-any
+	community-testing-i686 community-testing-x86_64 community-testing-any
+	kde-unstable-i686 kde-unstable-x86_64 kde-unstable-any
+	gnome-unstable-i686 gnome-unstable-x86_64 gnome-unstable-any
+)
+
+
+# parse command line options
+FORCE=
+while getopts ':f' flag; do
+	case $flag in
+		f) FORCE=1 ;;
+		:) die "Option requires an argument -- '$OPTARG'" ;;
+		\?) die "Invalid option -- '$OPTARG'" ;;
+	esac
+done
+shift $(( OPTIND - 1 ))
+
+if ! (( $# )); then
+	echo 'Usage: archrelease [-f] <repo>...'
+	exit 1
+fi
+
+# validate repo is really repo-arch
+if [[ -z $FORCE ]]; then
+	for tag in "$@"; do
+		if ! in_array "$tag" "${_tags[@]}"; then
+			die 'archrelease: Invalid tag: "'$tag'" (use -f to force release)'
+		fi
+	done
+fi
+
+if [[ ! -f PKGBUILD ]]; then
+	die 'archrelease: PKGBUILD not found'
+fi
+
+trunk=${PWD##*/}
+
+# Normally this should be trunk, but it may be something
+# such as 'gnome-unstable'
+IFS='/' read -r -d '' -a parts <<< "$PWD"
+if [[ "${parts[@]:(-2):1}" == "repos" ]]; then
+	die 'archrelease: Should not be in repos dir (try from trunk/)'
+fi
+unset parts
+
+if [[ $(svn status -q) ]]; then
+	die 'archrelease: You have not committed your changes yet!'
+fi
+
+pushd .. >/dev/null
+IFS=$'\n' read -r -d '' -a known_files < <(svn ls -r HEAD "$trunk")
+for file in "${known_files[@]}"; do
+	if [[ ${file:(-1)} = '/' ]]; then
+		die "archrelease: subdirectories are not supported in package directories!"
+	fi
+done
+
+for tag in "$@"; do
+	stat_busy "Copying ${trunk} to ${tag}"
+
+	if [[ -d repos/$tag ]]; then
+		declare -a trash
+		trash=()
+		while read -r file; do
+			trash+=("repos/$tag/$file")
+		done < <(svn ls "repos/$tag")
+		[[ $trash ]] && svn rm -q "${trash[@]}"
+	else
+		mkdir -p "repos/$tag"
+		svn add --parents -q "repos/$tag"
+	fi
+
+	# copy all files at once from trunk to the subdirectory in repos/
+	svn copy -q -r HEAD ${known_files[@]/#/$trunk/} "repos/$tag/"
+
+	stat_done
+done
+
+stat_busy "Releasing package"
+printf -v tag_list ", %s" "$@"; tag_list="${tag_list#, }"
+svn commit -q -m "archrelease: copy ${trunk} to $tag_list" || abort
+stat_done
+
+popd >/dev/null

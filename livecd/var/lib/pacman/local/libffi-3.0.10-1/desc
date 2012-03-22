@@ -1,0 +1,36 @@
+%NAME%
+libffi
+
+%VERSION%
+3.0.10-1
+
+%DESC%
+A portable, high level programming interface to various calling conventions
+
+%URL%
+http://sourceware.org/libffi
+
+%LICENSE%
+MIT
+
+%ARCH%
+x86_64
+
+%BUILDDATE%
+1314253483
+
+%INSTALLDATE%
+1329698655
+
+%PACKAGER%
+Eric Belanger <eric@archlinux.org>
+
+%SIZE%
+176128
+
+%REASON%
+1
+
+%DEPENDS%
+glibc
+

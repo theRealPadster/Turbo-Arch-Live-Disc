@@ -1,0 +1,351 @@
+#!/bin/bash
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# Avoid any encoding problems
+export LANG=C
+
+# check if messages are to be printed using color
+unset ALL_OFF BOLD BLUE GREEN RED YELLOW
+if [[ -t 2 ]]; then
+	# prefer terminal safe colored and bold text when tput is supported
+	if tput setaf 0 &>/dev/null; then
+		ALL_OFF="$(tput sgr0)"
+		BOLD="$(tput bold)"
+		BLUE="${BOLD}$(tput setaf 4)"
+		GREEN="${BOLD}$(tput setaf 2)"
+		RED="${BOLD}$(tput setaf 1)"
+		YELLOW="${BOLD}$(tput setaf 3)"
+	else
+		ALL_OFF="\e[1;0m"
+		BOLD="\e[1;1m"
+		BLUE="${BOLD}\e[1;34m"
+		GREEN="${BOLD}\e[1;32m"
+		RED="${BOLD}\e[1;31m"
+		YELLOW="${BOLD}\e[1;33m"
+	fi
+fi
+readonly ALL_OFF BOLD BLUE GREEN RED YELLOW
+
+plain() {
+	local mesg=$1; shift
+	printf "${BOLD}    ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+msg() {
+	local mesg=$1; shift
+	printf "${GREEN}==>${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+msg2() {
+	local mesg=$1; shift
+	printf "${BLUE}  ->${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+warning() {
+	local mesg=$1; shift
+	printf "${YELLOW}==> WARNING:${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+error() {
+	local mesg=$1; shift
+	printf "${RED}==> ERROR:${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+stat_busy() {
+	local mesg=$1; shift
+	printf "${GREEN}==>${ALL_OFF}${BOLD} ${mesg}...${ALL_OFF}" >&2
+}
+
+stat_done() {
+	printf "${BOLD}done${ALL_OFF}\n" >&2
+}
+
+setup_workdir() {
+	[[ -z $WORKDIR ]] && WORKDIR=$(mktemp -d --tmpdir "${0##*/}.XXXXXXXXXX")
+}
+
+cleanup() {
+	trap - EXIT INT QUIT TERM
+
+	[[ -n $WORKDIR ]] && rm -rf "$WORKDIR"
+	[[ $1 ]] && exit $1
+}
+
+abort() {
+	msg 'Aborting...'
+	cleanup 0
+}
+
+die() {
+	error "$*"
+	cleanup 1
+}
+
+trap abort INT QUIT TERM HUP
+trap 'cleanup 0' EXIT
+
+##
+#  usage : in_array( $needle, $haystack )
+# return : 0 - found
+#          1 - not found
+##
+in_array() {
+	local needle=$1; shift
+	local item
+	for item in "$@"; do
+		[[ $item = $needle ]] && return 0 # Found
+	done
+	return 1 # Not Found
+}
+
+##
+#  usage : get_full_version( [$pkgname] )
+# return : full version spec, including epoch (if necessary), pkgver, pkgrel
+##
+get_full_version() {
+	# set defaults if they weren't specified in buildfile
+	pkgbase=${pkgbase:-${pkgname[0]}}
+	epoch=${epoch:-0}
+	if [[ -z $1 ]]; then
+		if [[ $epoch ]] && (( ! $epoch )); then
+			echo $pkgver-$pkgrel
+		else
+			echo $epoch:$pkgver-$pkgrel
+		fi
+	else
+		for i in pkgver pkgrel epoch; do
+			local indirect="${i}_override"
+			eval $(declare -f package_$1 | sed -n "s/\(^[[:space:]]*$i=\)/${i}_override=/p")
+			[[ -z ${!indirect} ]] && eval ${indirect}=\"${!i}\"
+		done
+		if (( ! $epoch_override )); then
+			echo $pkgver_override-$pkgrel_override
+		else
+			echo $epoch_override:$pkgver_override-$pkgrel_override
+		fi
+	fi
+}
+
+
+FORCE='n'
+RUN=''
+NOCOPY='n'
+
+working_dir=''
+
+APPNAME=$(basename "${0}")
+
+# usage: usage <exitvalue>
+usage() {
+	echo "usage ${APPNAME} [options] working-dir [package-list | app]"
+	echo ' options:'
+	echo '    -r <app>      Run "app" within the context of the chroot'
+	echo '    -u            Update the chroot via pacman'
+	echo '    -f            Force overwrite of files in the working-dir'
+	echo '    -C <file>     Location of a pacman config file'
+	echo '    -M <file>     Location of a makepkg config file'
+	echo '    -n            Do not copy config files into the chroot'
+	echo '    -c <dir>      Set pacman cache. Default: /var/cache/pacman/pkg'
+	echo '    -h            This message'
+	exit 1
+}
+
+while getopts 'r:ufnhC:M:c:' arg; do
+	case "${arg}" in
+		r) RUN="$OPTARG" ;;
+		u) RUN='/bin/sh -c "pacman -Syu --noconfirm && (pacman -Qqu >/dev/null && pacman -Su --noconfirm || exit 0)"' ;;
+		f) FORCE='y' ;;
+		C) pac_conf="$OPTARG" ;;
+		M) makepkg_conf="$OPTARG" ;;
+		n) NOCOPY='y' ;;
+		c) cache_dir="$OPTARG" ;;
+		h|?) usage 0 ;;
+		*) error "invalid argument '${arg}'"; usage ;;
+	esac
+done
+
+if (( $EUID != 0 )); then
+	die 'This script must be run as root.'
+fi
+
+shift $(($OPTIND - 1))
+
+if [[ -z $RUN ]] && (( $# < 2 )); then
+	die 'You must specify a directory and one or more packages.'
+elif (( $# < 1 )); then
+	die 'You must specify a directory.'
+fi
+
+working_dir="$(readlink -f ${1})"
+shift 1
+
+[[ -z $working_dir ]] && die 'Please specify a working directory.'
+
+if [[ -z $cache_dir ]]; then
+	cache_conf=${working_dir}/etc/pacman.conf
+	[[ ! -f $cache_conf ]] && cache_conf=${pac_conf:-/etc/pacman.conf}
+	cache_dir=$( (grep -m 1 '^CacheDir' $cache_conf || echo 'CacheDir = /var/cache/pacman/pkg') | sed 's/CacheDir\s*=\s*//')
+	unset cache_conf
+fi
+
+if [[ -f /etc/pacman.d/mirrorlist ]]; then
+	host_mirror=$(pacman -Sddp extra/devtools 2>/dev/null | sed -E 's#(.*/)extra/os/.*#\1$repo/os/$arch#')
+fi
+if [[ -z $host_mirror ]]; then
+	host_mirror='http://mirrors.kernel.org/archlinux/$repo/os/$arch'
+fi
+if echo "${host_mirror}" | grep -q 'file://'; then
+	host_mirror_path=$(echo "${host_mirror}" | sed -E 's#file://(/.*)/\$repo/os/\$arch#\1#g')
+fi
+
+# {{{ functions
+chroot_mount() {
+	[[ -e "${working_dir}/sys" ]] || mkdir "${working_dir}/sys"
+	mount -t sysfs sysfs "${working_dir}/sys"
+
+	[[ -e "${working_dir}/proc" ]] || mkdir "${working_dir}/proc"
+	mount -t proc proc "${working_dir}/proc"
+
+	[[ -e "${working_dir}/dev" ]] || mkdir "${working_dir}/dev"
+	mount -t tmpfs dev "${working_dir}/dev" -o mode=0755,size=10M,nosuid
+	mknod -m 666 "${working_dir}/dev/null" c 1 3
+	mknod -m 666 "${working_dir}/dev/zero" c 1 5
+	mknod -m 600 "${working_dir}/dev/console" c 5 1
+	mknod -m 644 "${working_dir}/dev/random" c 1 8
+	mknod -m 644 "${working_dir}/dev/urandom" c 1 9
+	mknod -m 666 "${working_dir}/dev/tty" c 5 0
+	mknod -m 666 "${working_dir}/dev/tty0" c 4 0
+	mknod -m 666 "${working_dir}/dev/full" c 1 7
+	ln -s /proc/kcore "${working_dir}/dev/core"
+	ln -s /proc/self/fd "${working_dir}/dev/fd"
+	ln -s /proc/self/fd/0 "${working_dir}/dev/stdin"
+	ln -s /proc/self/fd/1 "${working_dir}/dev/stdout"
+	ln -s /proc/self/fd/2 "${working_dir}/dev/stderr"
+
+	[[ -e "${working_dir}/dev/shm" ]] || mkdir "${working_dir}/dev/shm"
+	mount -t tmpfs shm "${working_dir}/dev/shm" -o nodev,nosuid,size=128M
+
+	[[ -e "${working_dir}/dev/pts" ]] || mkdir "${working_dir}/dev/pts"
+	mount -t devpts devpts "${working_dir}/dev/pts" -o newinstance,ptmxmode=666
+	ln -s pts/ptmx "${working_dir}/dev/ptmx"
+
+	[[ -e $cache_dir ]] || mkdir -p "${cache_dir}"
+	[[ -e "${working_dir}/${cache_dir}" ]] || mkdir -p "${working_dir}/${cache_dir}"
+	mount -o bind "${cache_dir}" "${working_dir}/${cache_dir}"
+
+	if [[ -n $host_mirror_path ]]; then
+		[[ -e "${working_dir}/${host_mirror_path}" ]] || mkdir -p "${working_dir}/${host_mirror_path}"
+		mount -o bind "${host_mirror_path}" "${working_dir}/${host_mirror_path}"
+		mount -o remount,ro,bind "${host_mirror_path}" "${working_dir}/${host_mirror_path}"
+	fi
+
+	trap 'chroot_umount' EXIT INT QUIT TERM HUP
+}
+
+copy_hostconf () {
+	cp /etc/resolv.conf "${working_dir}/etc/resolv.conf"
+	echo "Server = ${host_mirror}" > ${working_dir}/etc/pacman.d/mirrorlist
+
+	if [[ -n $pac_conf && $NOCOPY = 'n' ]]; then
+		cp ${pac_conf} ${working_dir}/etc/pacman.conf
+	fi
+
+	if [[ -n $makepkg_conf && $NOCOPY = 'n' ]]; then
+		cp ${makepkg_conf} ${working_dir}/etc/makepkg.conf
+	fi
+}
+
+chroot_umount () {
+	umount "${working_dir}/proc"
+	umount "${working_dir}/sys"
+	umount "${working_dir}/dev/pts"
+	umount "${working_dir}/dev/shm"
+	umount "${working_dir}/dev"
+	umount "${working_dir}/${cache_dir}"
+	[[ -n $host_mirror_path ]] && umount "${working_dir}/${host_mirror_path}"
+}
+
+chroot_lock () {
+	# Only reopen the FD if it wasn't handed to us
+	if [[ $(readlink -f /dev/fd/9) != "${working_dir}.lock" ]]; then
+	  exec 9>"${working_dir}.lock"
+	fi
+
+	# Lock the chroot. Take note of the FD number.
+	if ! flock -n 9; then
+		stat_busy "Locking chroot"
+		flock 9
+		stat_done
+	fi
+}
+# }}}
+
+umask 0022
+if [[ -n $RUN ]]; then
+	# run chroot {{{
+	#Sanity check
+	if [[ ! -f "${working_dir}/.arch-chroot" ]]; then
+		die "'${working_dir}' does not appear to be a Arch chroot."
+	fi
+
+	chroot_lock
+	chroot_mount
+	copy_hostconf
+
+	eval chroot "${working_dir}" ${RUN}
+
+	# }}}
+else
+	# {{{ build chroot
+	if [[ -e $working_dir && $FORCE = 'n' ]]; then
+		die "Working directory '${working_dir}' already exists - try using -f"
+	fi
+
+	if { type -P btrfs && btrfs subvolume create "${working_dir}"; } &>/dev/null; then
+		chmod 0755 "${working_dir}"
+	fi
+
+	mkdir -p "${working_dir}/var/lib/pacman/sync"
+	mkdir -p "${working_dir}/etc/"
+
+	chroot_lock
+	chroot_mount
+
+	pacargs="--noconfirm --root=${working_dir} --cachedir=${cache_dir}"
+	if [[ -n $pac_conf ]]; then
+		pacargs="$pacargs --config=${pac_conf}"
+	fi
+
+	if (( $# != 0 )); then
+		op='-Sy'
+		if [[ $FORCE = 'y' ]]; then
+			op="${op}f"
+		fi
+		if ! pacman ${op} ${pacargs} $@; then
+			die 'Failed to install all packages'
+		fi
+	fi
+
+	if [[ -d "${working_dir}/lib/modules" ]]; then
+		ldconfig -r "${working_dir}"
+	fi
+
+	if [[ -e "${working_dir}/etc/locale.gen" ]]; then
+		sed -i 's@^#\(en_US\|de_DE\)\(\.UTF-8\)@\1\2@' "${working_dir}/etc/locale.gen"
+		chroot "${working_dir}" /usr/sbin/locale-gen
+	fi
+
+	copy_hostconf
+
+	if [[ ! -e "${working_dir}/.arch-chroot" ]]; then
+		date +%s > "${working_dir}/.arch-chroot"
+	fi
+	# }}}
+fi
