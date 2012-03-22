@@ -1,0 +1,44 @@
+Turbo Arch Live Disc is a custom Arch live disc preconfigured to be fully functional. "So that Arch doesn't take two days to set up!"
+
+Planned features:
+-boots into GNOME-Shell
+-GUI installer
+-has a bunch of programs installed
+-comes with a few GNOME-Shell extensions enabled
+-single-click on Nautilus
+-custom artwork
+-necessary drivers installed
+
+Default Applications:
+-Most standard GNOME applications
+-Firefox
+-Rhythmbox
+-Deluge
+-Empathy
+-GIMP
+-Inkscape
+-Irssi
+-LibreOffice
+-Thunderbird
+-Xchat
+
+Default Drivers/Codecs
+-gstreamer0.10-bad
+-gstreamer0.10-bad-plugins
+-gstreamer0.10-base-plugins
+-gstreamer0.10-ffmpeg
+-gstreamer0.10-good-plugins
+-gstreamer0.10-ugly-plugins
+-libdvdread
+-libdvdcss
+-libdvdnav
+-p7zip
+-unrar
+-xf86-input-synaptics
+-xf86-video-ati
+-xf86-video-intel
+-xf86-video-nouveau
+-xf86-video-vesa
+
+Credits: 
+Padster/theRealPadster
