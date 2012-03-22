@@ -7,7 +7,7 @@ Planned features:
 -comes with a few GNOME-Shell extensions enabled
 -single-click on Nautilus
 -custom artwork
--necessary drivers installed
+-necessary drivers/codecs installed
 
 Default Applications:
 -Most standard GNOME applications
@@ -18,7 +18,7 @@ Default Applications:
 -GIMP
 -Inkscape
 -Irssi
--LibreOffice
+-LibreOffice (with en-GB language pack)
 -Thunderbird
 -Xchat
 
