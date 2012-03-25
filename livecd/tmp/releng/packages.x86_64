@@ -48,7 +48,6 @@ gstreamer0.10-ffmpeg
 gstreamer0.10-good-plugins
 gstreamer0.10-ugly-plugins
 hunspell-en
-inkscape
 metacity
 mutter 
 nautilus
@@ -62,14 +61,10 @@ lftp
 libdvdread
 libdvdcss
 libdvdnav
-libreoffice-base
 libreoffice-calc
 libreoffice-common
-libreoffice-draw
 libreoffice-en-GB
 libreoffice-gnome
-libreoffice-impress
-libreoffice-math
 libreoffice-writer
 lilo
 linux-atm
@@ -107,7 +102,6 @@ vinagre
 vpnc
 wireless_tools
 wpa_actiond
-xchat
 xf86-input-synaptics
 xf86-video-ati
 xf86-video-intel
