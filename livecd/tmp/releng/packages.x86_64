@@ -24,8 +24,6 @@ gimp
 gnome-control-center
 gnome-desktop
 gnome-disk-utility
-gnome-games
-gnome-games-extra-data
 gnome-icon-theme
 gnome-icon-theme-extras
 gnome-icon-theme-symbolic
@@ -60,7 +58,6 @@ gptfdisk
 hdparm
 ipw2100-fw
 ipw2200-fw
-irssi
 lftp
 libdvdread
 libdvdcss
@@ -103,7 +100,6 @@ telepathy-gabble
 telepathy-glib
 telepathy-haze
 telepathy-salut
-thunderbird
 totem
 ttf-dejavu
 unrar
