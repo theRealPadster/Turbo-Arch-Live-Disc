@@ -16,9 +16,7 @@ Default Applications:
 -Deluge
 -Empathy
 -GIMP
--Inkscape
--LibreOffice (with en-GB language pack)
--Xchat
+-LibreOffice Writer and Calc (with en-GB language pack)
 
 Default Drivers/Codecs
 -gstreamer0.10-bad
