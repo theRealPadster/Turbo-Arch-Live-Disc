@@ -1,1 +1,0 @@
-INPUT ( /usr/lib/libbfd.a -liberty -lz )
