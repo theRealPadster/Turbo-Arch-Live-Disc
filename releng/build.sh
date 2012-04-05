@@ -352,12 +352,14 @@ case "${command_name}" in
                         make_common_single netinstall
                         ;;
                     core)
-                        make_core_repo
+                        # This should make the ISO small by excluding the packages cache
+                        # make_core_repo
                         make_common_single core
                         ;;
                     all)
                         make_common_single netinstall
-                        make_core_repo
+                        # This should make the ISO small by excluding the packages cache
+                        # make_core_repo
                         make_common_single core
                         ;;
                     *)
