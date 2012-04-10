@@ -103,13 +103,13 @@ smartmontools
 sudo
 sushi
 tcpdump
-telepathy-butterfly #An MSN connection manager for Telepathy
-telepathy-gabble #A Jabber/XMPP connection manager for Telepathy
-telepathy-glib #GLib bindings for the Telepathy D-Bus protocol
-telepathy-haze #A telepathy-backend to use libpurple (Pidgin) protocols.
-telepathy-idle #An IRC connection manager for Telepathy
-telepathy-rakia #SIP connection manager for Telepathy
-telepathy-salut #A link-local XMPP connection manager for Telepathy
+telepathy-butterfly
+telepathy-gabble
+telepathy-glib
+telepathy-haze
+telepathy-idle
+telepathy-rakia
+telepathy-salut
 totem
 ttf-dejavu
 unrar

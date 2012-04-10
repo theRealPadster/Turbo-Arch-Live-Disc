@@ -9,4 +9,4 @@ avahi
 caribou
 musicbrainz
 mutagen
-v4l-utils #needed for transmission, if we put it in
+v4l-utils
