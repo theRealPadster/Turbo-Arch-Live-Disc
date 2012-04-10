@@ -10,7 +10,7 @@ crda
 dbus
 ddrescue
 deluge
-dhclient
+dhcpcd
 dialog
 dnsutils
 dosfstools
@@ -66,7 +66,6 @@ mutter
 nautilus
 notification-daemon
 gnu-netcat
-gptfdisk
 hdparm
 ipw2100-fw
 ipw2200-fw
@@ -92,11 +91,9 @@ ntfs-3g
 ntfsprogs
 ntp
 numlockx
-openconnect
 openssh
 openvpn
 p7zip
-parted
 packagekit
 polkit-gnome
 pulseaudio-alsa
@@ -106,17 +103,18 @@ smartmontools
 sudo
 sushi
 tcpdump
-telepathy-gabble
-telepathy-glib
-telepathy-haze
-telepathy-salut
+telepathy-butterfly #An MSN connection manager for Telepathy
+telepathy-gabble #A Jabber/XMPP connection manager for Telepathy
+telepathy-glib #GLib bindings for the Telepathy D-Bus protocol
+telepathy-haze #A telepathy-backend to use libpurple (Pidgin) protocols.
+telepathy-idle #An IRC connection manager for Telepathy
+telepathy-rakia #SIP connection manager for Telepathy
+telepathy-salut #A link-local XMPP connection manager for Telepathy
 totem
 ttf-dejavu
 unrar
 usb_modeswitch
 vdpau-video
-vinagre
-vpnc
 wireless_tools
 wpa_actiond
 xf86-input-synaptics

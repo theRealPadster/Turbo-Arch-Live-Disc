@@ -1,4 +1,12 @@
+#default
 gcc-ada
 gcc-fortran
 gcc-go
 gcc-objc
+
+#custom
+avahi
+caribou
+musicbrainz
+mutagen
+v4l-utils #needed for transmission, if we put it in
