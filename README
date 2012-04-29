@@ -1,8 +1,11 @@
-Turbo Arch Live Disc is a custom Arch live disc preconfigured to be fully functional. "So that Arch doesn't take two days to set up!"
+Turbo-Arch is a custom Arch Linux live disc preconfigured to be fully functional.
+"So Arch doesn't take two days to set up!"
 
 Setting up the development environment:
-The disc is build with Archiso, which has documentation available here: https://wiki.archlinux.org/index.php/Archiso
+The disc is built with Archiso, which has documentation available here: https://wiki.archlinux.org/index.php/Archiso
 One way of running it is to set up a chroot, and install archiso into it. See the link for more info: https://kroweer.wordpress.com/2011/09/07/creating-a-custom-arch-linux-live-usb/ The releng folder would then be placed into the directory mentioned in the tutorial, and updated with git. 
+
+Right now, we actually have a somewhat weird system going on for building. This git project holds most of the files, but the disc is actually build with aLive, a project by "fluxer", which includes, aBuild, https://github.com/fluxer/aBuild, and aBoot, https://github.com/fluxer/aBoot. 
 
 Planned features:
 -boots into GNOME-Shell
