@@ -6,6 +6,8 @@ alsa-utils
 b43-fwcutter
 brasero
 ca-certificates
+cheese
+cpupower
 crda
 dbus
 ddrescue
@@ -95,6 +97,7 @@ openssh
 openvpn
 p7zip
 packagekit
+papyon
 polkit-gnome
 pulseaudio-alsa
 rhythmbox
@@ -103,7 +106,6 @@ smartmontools
 sudo
 sushi
 tcpdump
-telepathy-butterfly
 telepathy-gabble
 telepathy-glib
 telepathy-haze
@@ -126,6 +128,5 @@ xorg-server
 xorg-xinit
 xorg-utils
 xorg-server-utils
-yaourt
 zd1211-firmware
 zenity

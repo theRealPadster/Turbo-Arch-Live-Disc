@@ -1,16 +1,17 @@
-**************************************************************
-* To begin installation, run /arch/setup                     *
-* You can find documentation at                              *
-*  /usr/share/aif/docs/official_installation_guide_en        *
-*                                                            *
-* i18n: Use the 'km' utility to change your keyboard layout  *
-*       and console font.                                    *
-*                                                            *
-* If you encounter issues and want to report them or         *
-* seek help, run /arch/report-issues                         *
-*                                                            *
-* If you are looking to install Arch on something more       *
-* exotic, such as your kerosene-powered cheese grater,       *
-* please consult http://wiki.archlinux.org.                  *
-*                                                            *
-**************************************************************
+***************************************************************************
+*  ________ _   _  ____   ___   ___            ___   ____    ____  _   _  *
+* /__   __/| | | ||  _ \ |   \ / _ \          / _ \ |  _ \  /  _/ | | | | *
+*    | |   | | | || |_| || O /| | | |  _____ | |_| || |_| || |    | |_| | *
+*    | |   | |_| ||  _  /| O \| |_| | /____/ |  _  ||  _  /| |__  |  _  | *
+*    |_|   |_____||_| \_\|___/ \___/         |_| |_||_| \_\ \___/ |_| |_| *
+*                                                                         *
+* -"So Arch doesn't take two days to set up"                              *
+*                                                                         *
+* If you encounter issues and want to report them or                      *
+* seek help, run /arch/report-issues                                      *
+*                                                                         *
+* If you are looking to install Arch on something more                    *
+* exotic, such as your kerosene-powered cheese grater,                    *
+* please consult http://wiki.archlinux.org.                               *
+*                                                                         *
+***************************************************************************

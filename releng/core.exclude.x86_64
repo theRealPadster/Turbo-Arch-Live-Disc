@@ -5,8 +5,5 @@ gcc-go
 gcc-objc
 
 #custom
-avahi
-caribou
 musicbrainz
 mutagen
-v4l-utils
