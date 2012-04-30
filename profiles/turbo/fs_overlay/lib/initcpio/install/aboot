@@ -5,7 +5,7 @@ build() {
     SCRIPT="aboot"
     
     # Base modules needed for CD/DVD/USB boot support
-    MODULES="cdrom usb_storage sd_mod sr_mod isofs loop squashfs aufs"
+    MODULES="cdrom usb_storage sd_mod sr_mod isofs loop squashfs"
     
     # Include the functions
     add_file "/lib/aboot/functions.sh"

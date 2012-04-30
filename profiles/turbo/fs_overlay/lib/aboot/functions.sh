@@ -90,7 +90,7 @@ parse_kernel_args() {
     
     # aboot variables
     LIVE_FUNC="mods,boot,sfs,tmpfs,c2r,aufs,move,setup"
-    LIVE_MODPROBE="cdrom,isofs,usb_storage,sd_mod,sr_mod,squashfs,aufs"
+    LIVE_MODPROBE="cdrom,isofs,usb_storage,sd_mod,sr_mod,squashfs"
     LIVE_WAIT=""
     LIVE_BOOT_DEV=""
     LIVE_SFS_IMG="aboot/root.sfs"
