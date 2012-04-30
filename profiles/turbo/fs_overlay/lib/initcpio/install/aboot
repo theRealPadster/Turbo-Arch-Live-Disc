@@ -1,0 +1,21 @@
+#!/bin/bash
+ 
+build() {
+    # The name of the hook to be builded
+    SCRIPT="aboot"
+    
+    # Base modules needed for CD/DVD/USB boot support
+    MODULES="cdrom usb_storage sd_mod sr_mod isofs loop squashfs"
+    
+    # Include the functions
+    add_file "/lib/aboot/functions.sh"
+    
+    # Handy examples
+    # add_file <path>
+    # add_dir <path>
+    # add_binary <path>
+}
+ 
+help() {
+    echo "Hook to boot Arch Linux as a live CD/DVD/USB environment"
+}

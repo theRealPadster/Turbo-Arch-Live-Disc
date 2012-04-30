@@ -1,0 +1,12 @@
+
+   The hook functions are as follows:
+
+    MODS: loads modules that are necessary for operations with filesystems
+    BOOT: mounts the boot device (CD/DVD/USB) to access the files on it
+    SFS: mounts the SquashFS image of the root filesystem as read-only branch
+    TMPFS: mounts tmpfs as read-write branch
+    C2R: copies the SquashFS image into RAM so the boot device can be ejected
+    AUFS: merges the branches into an ultimate aufs read-write filesystem
+    SETUP: triggers aboot_config, aboot_repair or eject if needed
+    MOVE: re-mounts the branches to the new root
+    SHELL: launches an interactive shell for repairs

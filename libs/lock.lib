@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# BashLibs - libraries for Bash
+# Copyright (C) 2012  Ivailo Monev
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Homepage: https://github.com/fluxer/BashStuff
+#
+
+# Lock - lock fles or folder and check if locked
+
+# Optional $FORCE
+
+# $1 - file/directory to lock/check/unlock
+LOCK() {
+	if [ -e "$1" ];then
+		local lock="${1}.lock"
+		EXTRA_DEBUG "Lock file" "$lock"
+		if [ -e "$lock" ];then
+			WARNING "$1 is already locked"
+			return 1
+		else
+			EXTRA_INFO "Locking" "$1"
+			touch "$lock" || ERROR "Unable to lock: $1"
+			return 0
+		fi
+	else
+		EXTRA_WARNING "The file/directory doesn't exists" "$1"
+	fi
+}
+
+CHECK_LOCK() {
+	if [ -e "$1" ];then
+		local lock="${1}.lock"
+		EXTRA_DEBUG "Lock file" "$lock"
+		if [ "$FORCE" = "1" ];then
+            EXTRA_WARNING "Lock check skipped for" "$1"
+        elif [ -e "$lock" ];then
+			EXTRA_ERROR "Already locked by another process" "$1"
+		    return 1
+		else
+			DEBUG "$1 is not locked"
+			return 0
+		fi
+	else
+		EXTRA_WARNING "The file/directory doesn't exists" "$1"
+	fi	
+}
+
+UNLOCK() {
+	if [ -e "$1" ];then
+		local lock="${1}.lock"
+		EXTRA_DEBUG "Lock file" "$lock"
+		if [ -e "$lock" ];then
+			EXTRA_INFO "Unlocking" "$1"
+			rm -f "$lock"
+			return 1
+		else
+			DEBUG "$1 is not locked"
+			return 0
+		fi
+	else
+		EXTRA_WARNING "The file/directory doesn't exists" "$1"
+	fi
+}

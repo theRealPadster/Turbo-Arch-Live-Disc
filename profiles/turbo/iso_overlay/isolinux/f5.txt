@@ -1,0 +1,24 @@
+
+   The following sane defaults are used by the aBoot hook:
+
+    LIVE_CONFIG=0
+    LIVE_REPAIR=0
+    LIVE_COPY2RAM=0
+    LIVE_EJECT=1
+    LIVE_FUNC=mods,boot,sfs,tmpfs,c2r,aufs,setup,move
+    LIVE_MODPROBE=cdrom,isofs,usb_storage,sd_mod,sr_mod,squashfs,aufs
+    LIVE_BOOT_DEV=
+    LIVE_WAIT=
+    LIVE_SFS_IMG=alive/root.sfs
+    LIVE_TMPFS_SIZE=50%
+    LIVE_HOSTNAME=aboot
+    LIVE_ROOT_PASS=root
+    LIVE_TIMEZONE=Europe/Sofia
+    LIVE_KEYMAP=us
+    LIVE_LOCALE=en_US.UTF-8
+    LIVE_USER=live
+    LIVE_USER_PASS=${LIVE_USER}
+    LIVE_USER_UID=1000
+    LIVE_USER_SHELL=/bin/bash
+    LIVE_USER_GROUPS=audio,lp,network,optical,storage,video,wheel,games,power
+    LIVE_INTERFACE=eth0

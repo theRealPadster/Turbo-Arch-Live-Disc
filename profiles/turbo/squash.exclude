@@ -1,0 +1,25 @@
+# pseudo filesystems
+dev/*
+sys/*
+proc/*
+
+# tepmorary directories
+cdrom/*
+media/*
+mnt/*
+tmp/*
+
+# swap file
+swapfile
+
+# boot releated files
+boot/grub/grub.cfg
+boot/grub/menu.lst
+boot/grub/device.map
+
+# old,backup and all sort of trash files
+root/.bash_history
+etc/skel/.bash_history
+# var/log/*
+var/cache/*
+.arch-chroot

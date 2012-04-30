@@ -1,0 +1,430 @@
+#!/usr/bin/env bash
+# aBuild - set of Bash scripts to build Arch live CDs
+# Copyright (C) 2012  Ivailo Monev
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+
+cd $(dirname $0)
+
+runtime_check() {
+    for l in libs/message.lib libs/test.lib libs/lock.lib libs/chroot.lib;do
+        if [ -e "${l}" ];then
+            source "${l}"
+        else
+            echo "Missing library: ${l}"
+            exit
+        fi
+    done
+    
+    CHECK_UID
+    
+    if [ -d "profiles/${1}" ];then
+        PROFILE="profiles/${1}"
+        
+        if [ ! -f "${PROFILE}/preferences.conf" ];then
+            ERROR "${PROFILE}/preferences.conf doesn't exists"
+        else
+            source "${PROFILE}/preferences.conf"
+        fi
+        
+        if [ ! -f "${PROFILE}/packages.remote" ];then
+            ERROR "${PROFILE}/packages.remote doesn't exist"
+        else
+            REMOTE_PACKAGES="$(grep -v '#' ${PROFILE}/packages.remote)"
+        fi
+        
+        if [ ! -f "${PROFILE}/packages.local" ];then
+            WARNING "packages.local doesn't exist, setting to null"
+            LOCAL_PACKAGES=""
+        else
+            LOCAL_PACKAGES="$(grep -v '#' ${PROFILE}/packages.local)"
+        fi
+        
+         if [ ! -d "${PROFILE}/fs_overlay" ];then
+            ERROR "${PROFILE}/fs_overlay doesn't exists"
+        fi
+        
+        if [ ! -d "${PROFILE}/iso_overlay" ];then
+            ERROR "${PROFILE}/iso_overlay doesn't exists"
+        fi
+    
+        if [ ! -f "${PROFILE}/squash.exclude" ];then
+            WARNING "squash.exclude doesn't exist, setting to null"
+            LOCAL_PACKAGES=""
+        else
+            LOCAL_PACKAGES="$(grep -v '#' ${PROFILE}/packages.local)"
+        fi
+    else
+        EXTRA_ERROR "The specified profiles is not valid" "${1}"
+    fi
+    
+    if [ -z "$(which mkarchroot)" ];then
+        ERROR "mkarchroot isn't available, install the 'devtools' package"    
+    fi
+}
+
+
+#========================== Purge root filesystem =========================#
+
+clean_fs() {
+    if [ -d "${FILESYSTEM_DIR}" ];then
+        CHECK_LOCK "${FILESYSTEM_DIR}" 
+        CHROOT_VERB_UNMOUNT_PSEUDO
+        EXTRA_INFO "Purging" "${FILESYSTEM_DIR}"
+        rm -rf "${FILESYSTEM_DIR}" || ERROR "Unable to purge the filesystem"
+    else
+        INFO "There is nothing to purge"
+    fi
+}
+
+clean_build() {
+    if [ -d "${BUILD_DIR}" ];then
+        CHECK_LOCK "${BUILD_DIR}" 
+        EXTRA_INFO "Purging" "${BUILD_DIR}"
+        rm -rf "${BUILD_DIR}" || ERROR "Unable to purge the build directory"
+    else
+        INFO "There is nothing to purge"
+    fi
+}
+
+#========================== Copy filesystem overlay =========================#
+
+fs_overlay() {
+    if [ -d "${FILESYSTEM_DIR}" ];then 
+        CHECK_LOCK "${FILESYSTEM_DIR}" 
+
+        INFO "Copying filesystem overlay"
+        cp -rf "${PROFILE}/fs_overlay/"* "${FILESYSTEM_DIR}" || ERROR "Unable to copy the filesystem overlay"
+    else
+        INFO "Filesystem doesn't exists"
+    fi
+}
+
+#========================== Bootstrap basic root filesystem =========================#
+
+bootstrap() {
+    local pkgs="base"
+    
+    if [ -d "${FILESYSTEM_DIR}" ];then 
+        CHECK_LOCK "${FILESYSTEM_DIR}" 
+
+        WARNING "Filesystem already exists!"
+        EXTRA_QUESTION "Do you want to purge it and continue" "Y/a"
+        read answer
+        case "$answer" in
+            y|yes) clean_fs ;;
+            *) INFO "Aborting"; exit ;;
+        esac
+    fi
+
+    EXTRA_INFO "Using packages list" "${pkgs}"
+        
+        
+    INFO "Bootstrapping root filesystem"
+    mkarchroot -f "${FILESYSTEM_DIR}" "${REMOTE_PACKAGES}" || ERROR "Unable to bootstrap basic filesystem"
+    
+    package ${LOCAL_PACKAGES}
+    
+    fs_overlay
+        
+    INFO "Setting up HOOKS array"
+    sed -i "s|^HOOKS=.*|HOOKS=\"${HOOKS}\"|g" "${FILESYSTEM_DIR}/etc/mkinitcpio.conf" || WARNING "Unable to setup the HOOKS"
+}
+
+#========================== Install package(s) into the fielsystem =========================#
+
+package() {
+    install_local() {
+        local pkg
+        for pkg in ${@};do
+            if [ -f "${pkg}" ];then
+                EXTRA_INFO "Copying package" "${pkg}"
+                cp -f "${pkg}" "${FILESYSTEM_DIR}/tmp/package.pkg.tar.xz"  || ERROR "Unable copy the package into filesystem" "${pkg}"
+                         
+                INFO "Installing local package into the filesystem"
+                mkarchroot -r "pacman -U ${PAC_OPTIONS} /tmp/package.pkg.tar.xz" "${FILESYSTEM_DIR}" || ERROR "Unable install package" "${pkg}"
+            else
+                EXTRA_WARNING "The package specified doesn't exist" "${pkg}"
+            fi
+        done
+    }    
+
+    install_remote() {
+        local pkg
+        local status
+        
+        for pkg in ${@};do
+            status="$(chroot "${FILESYSTEM_DIR}" pacman -Qs ${pkg})"
+            if [ -z "${status}" ];then
+                EXTRA_INFO "Installing package" "${pkg}"
+                mkarchroot -r "pacman -S ${PAC_OPTIONS} ${pkg}" "${FILESYSTEM_DIR}" || EXTRA_ERROR "Unable install package" "${pkg}"
+            else
+                EXTRA_INFO "Package already installed" "${pkg}"
+            fi
+        done
+    }
+    
+    CHECK_FILESYSTEM
+    CHECK_LOCK "${FILESYSTEM_DIR}" 
+    LOCK "${FILESYSTEM_DIR}"
+    trap "UNLOCK "${FILESYSTEM_DIR}"" EXIT
+
+    if [ "${CHROOT_HELPER}" = "1" ];then
+        INFO "Updating the filesystem"
+        mkarchroot -u "${FILESYSTEM_DIR}"
+    fi
+
+    case "${1}" in
+        *.pkg.tar.xz) install_local "${1}" ;;
+        remote) INFO "Using remote package(s) list"
+                  install_remote ${REMOTE_PACKAGES} ;;
+        local) INFO "Using local package(s) list"
+                 install_local ${LOCAL_PACKAGES} ;;
+        *) ERROR "The argument for package is not path to Arch package nor list" ;;
+    esac
+}
+
+
+#========================== Interactive chroot =========================#
+
+cchroot() {
+    CHECK_FILESYSTEM
+    CHECK_LOCK "${FILESYSTEM_DIR}" 
+    LOCK "${FILESYSTEM_DIR}"
+    trap "UNLOCK "${FILESYSTEM_DIR}"" EXIT
+
+    if [ "${CHROOT_HELPER}" = "1" ];then
+        INFO "Updating the filesystem"
+        mkarchroot -u "${FILESYSTEM_DIR}"
+    fi
+
+    mkarchroot -r "bash;exit 0" "${FILESYSTEM_DIR}" || ERROR "Unable chroot into filesystem"
+}
+
+#========================== Prepare the root filesystem and copy kernel images =========================#
+
+prepare() {
+    local f
+    
+    CHECK_LOCK "${FILESYSTEM_DIR}"  
+    LOCK "${FILESYSTEM_DIR}"
+    CHECK_FILESYSTEM
+    trap "UNLOCK \"${FILESYSTEM_DIR}\"; UNLOCK \"${BUILD_DIR}\"" EXIT
+
+    CHECK_LOCK "${BUILD_DIR}"
+    mkdir -p "${BUILD_DIR}/aboot"
+    LOCK "${BUILD_DIR}"
+
+    for f in "${BUILD_DIR}/aboot/"*.img "${BUILD_DIR}/aboot/vmlinuz" "${FILESYSTEM_DIR}/boot/"*.img;do
+        if [ -e "$i" ];then
+            EXTRA_INFO "Purging" "${f}"
+            rm -rf "${f}" || EXTRA_WARNING "Unable to delete" "${f}"
+        fi
+    done
+
+    if [ "${CHROOT_HELPER}" = "1" ];then
+        INFO "Updating the filesystem"
+        mkarchroot -u "${FILESYSTEM_DIR}"
+    fi
+
+    INFO "Generating kernel images"
+    mkarchroot -r "mkinitcpio -p $USE_KERNEL" "${FILESYSTEM_DIR}" || ERROR "Unable generate kernel images"
+
+    INFO "Copying boot files"
+    LINUX="$(ls "${FILESYSTEM_DIR}/boot/"*initramfs*.img | tail -1)"
+    FALLBACK="$(ls "${FILESYSTEM_DIR}/boot/"*fallback*.img | tail -1)"
+    VMLINUZ="$(ls "${FILESYSTEM_DIR}/boot/"*vmlinuz* | tail -1)"
+    EXTRA_DEBUG "Copying initrd.img" "$LINUX"
+    cp -f "${LINUX}" "${BUILD_DIR}/aboot/linux.img" || EXTRA_ERROR "Unable to copy linux image" "${LINUX}"
+    EXTRA_DEBUG "Copying fallback initrd.img" "${FALLBACK}"
+    cp -f "${FALLBACK}" "${BUILD_DIR}/aboot/fallback.img" || EXTRA_ERROR "Unable to copy linux-fallback image" "${FALLBACK}"
+    EXTRA_DEBUG "Copying vmlinuz" "${VMLINUZ}"
+    cp -f "${VMLINUZ}" "${BUILD_DIR}/aboot/vmlinuz" || EXTRA_ERROR "Unable to copy vmlinuz" "${VMLINUZ}"
+    
+    if [ "${PKGS_ON_ISO}" = "1" ];then
+        INFO "Generating packages list"
+        mkarchroot -r "pacman -Q" "${FILESYSTEM_DIR}" > "${BUILD_DIR}/packages.txt" || WARNING "Unable to generate the packages list"
+    fi
+}
+
+#========================== Squash the root filesystem =========================#
+
+squash() {
+    CHECK_LOCK "${FILESYSTEM_DIR}"  
+    LOCK "${FILESYSTEM_DIR}"
+    CHECK_FILESYSTEM
+    trap "{ UNLOCK \"${FILESYSTEM_DIR}\"; UNLOCK \"${BUILD_DIR}\"; }" EXIT
+
+
+    SFS_IMAGE="${BUILD_DIR}/aboot/root.sfs"
+
+    if [ -e "${SFS_IMAGE}" ];then
+        EXTRA_INFO "Purging" "${SFS_IMAGE}"
+        rm -f "${SFS_IMAGE}" || EXTRA_WARNING "Unable to delete" "$i"
+    fi
+
+    CHECK_LOCK "${BUILD_DIR}"
+    mkdir -p "${BUILD_DIR}/aboot"
+    LOCK "${BUILD_DIR}"
+
+    if [ "${CHROOT_HELPER}" = "1" ];then
+        INFO "Updating the filesystem"
+        mkarchroot -u "${FILESYSTEM_DIR}"
+    fi
+
+    INFO "Compressing filesystem to SquashFS image"
+    mksquashfs "${FILESYSTEM_DIR}" "${SFS_IMAGE}" ${SQUASH_OPTIONS} || ERROR "Unable to squash the filesystem"
+
+    INFO "Calculating filesystem size"
+    du -s --exclude-from="${PROFILE}/squash.exclude" "${FILESYSTEM_DIR}" | cut -f1 > "${BUILD_DIR}/aboot/root.size"
+
+    INFO "Checking SquashFS image size"
+    SQUASH_SIZE="$(du -s "${SFS_IMAGE}" | cut -f1)"
+    EXTRA_DEBUG "squashfs size" "${SQUASH_SIZE}"
+    if [ "${SQUASH_SIZE}" -gt "4000000" ];then
+        ERROR "The squashed filesystem size is greater than 4GB"
+    fi
+}
+
+#========================== Copy ISO overlay =========================#
+
+iso_overlay() {
+    if [ -d "${BUILD_DIR}" ];then 
+        CHECK_LOCK "${BUILD_DIR}" 
+
+        INFO "Copying ISO overlay"
+        cp -rf "${PROFILE}/iso_overlay/"* "${BUILD_DIR}" || ERROR "Unable to copy the ISO overlay"
+    else
+        INFO "Build directory doesn't exists"
+    fi
+}
+
+
+#================================= Create ISO image ==================================#
+
+iso() {
+    CHECK_LOCK "${BUILD_DIR}"  
+    LOCK "${BUILD_DIR}"
+    trap "UNLOCK "${BUILD_DIR}"" EXIT
+
+    if [ -e "${PROFILE}/${ISO}.iso" ];then
+        rm -f "${PROFILE}/${ISO}.iso" || EXTRA_WARNING "Unable to delete" "${i}"
+    fi
+
+    mkdir -p "${BUILD_DIR}/aboot"
+
+    iso_overlay
+
+    INFO "Setting up isolinux.cfg"
+    sed -i "s|__CD_LABEL__|${ISO}|g" "${BUILD_DIR}/isolinux/isolinux.cfg" || WARNING "Unable to setup CD label"
+    sed -i "s|__BOOT_OPTIONS__|${BOOT_OPTIONS}|" "${BUILD_DIR}/isolinux/isolinux.cfg" || WARNING "Unable to setup boot options"
+    sed -i "s|__FALLBACK_OPTIONS__|${BOOT_FALLBACK_OPTIONS}|" "${BUILD_DIR}/isolinux/isolinux.cfg" || WARNING "Unable to setup recovery options"
+    INFO "Setting up image information"
+    sed -i "s|__ARCH__|$ARCH|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image architecture information"
+    sed -i "s|__KERNEL__|$USE_KERNEL|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image kernel information"
+    sed -i "s|__DATE__|$(date +%F)|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image build date information"
+    sed -i "s|__CD_LABEL__|${ISO}|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image label information"
+    
+    touch "${BUILD_DIR}/.aboot"
+
+    INFO "Creating ISO"
+    EXTRA_DEBUG "ISO file" "${ISO}.iso"
+    (mkisofs -r -l -b "isolinux/isolinux.bin" -c "isolinux/boot.cat" \
+    -iso-level 3 -no-emul-boot -boot-load-size 4 -boot-info-table \
+    -V "${ISO}" -o "${PROFILE}/${ISO}.iso" "${BUILD_DIR}") || ERROR "Unable to create ISO image"
+    
+    if [ "${ISO_HYBRID}" = "1" ];then
+        INFO "Making the ISO image hybrid"
+        isohybrid "${PROFILE}/${ISO}.iso" || ERROR "Unable to make the ISO image hybrid"
+    fi
+}
+
+
+#================================ Arguments handler ================================#
+
+Usage () {
+echo "
+ aBuild v2.1.0 - set of Bash scripts to build Arch Linux CD/DVD images
+ 
+  Usage: 
+     
+     '# bash abuild <profile> <arg> [<arg2>] [<arg3>]..'
+ 
+  Main options:
+
+     -d|--bootstrap               Bootstrap root filesystem
+     -p|--pkg=<remote|local|pkg>  Install package(s) into the filesystem
+     -c|--chroot                  Chroot into the filesystem
+     -b|--build                   Build ISO image (execute all build stages)
+     -t|--clean                   Purge all temporary files
+
+  Build stages:
+  
+     -P|--prepare                 Prepare the filesystem and build directory for build
+     -S|--squash                  Squash the filesystem
+     -I|--iso                     Create ISO from the build directory
+
+  Overlay options:
+	 
+     -F|--copy-fs                 Copy the root filesystem overlay
+     -O|--copy-iso                Copy the ISO overlay
+  
+  Clean options:
+  
+     -T|--clean-fs                Purge the filesystem directory
+     -B|--clean-build             Purge the build directory
+  
+  Other options:
+	 
+     -h|--help                    Print this message
+	 
+ Developer: Ivailo Monev (a.k.a SmiL3y)
+ E-Mail: xakepa10@gmail.com
+"
+}
+
+
+#================================= Arguments handling ================================
+
+if [ "$#" -gt "1" ];then
+  runtime_check "${1}"; shift
+  
+  for arg in $@; do
+		case $arg in
+			# Main options
+			-d|--bootstrap) bootstrap ;;
+			-p=*|--pkg=*) package "${arg##*=}";shift ;;
+			-c|--chroot) cchroot ;;
+			-b|--binary) prepare; squash; iso ;;
+			-t|--clean) clean_fs; clean_build ;;
+			# Binary stages options	
+			-P|--prepare) prepare ;;
+			-S|--squash) squash ;;
+			-I|--iso) iso ;;
+			# Overlay options
+			-F|--copy-fs) fs_overlay ;;
+			-O|--copy-iso) iso_overlay ;;
+			# Clean options
+			-T|--clean-fs) clean_fs ;;
+			-B|--clean-build) clean_build ;;
+			# Other options
+			-h|--help) Usage ;;
+			-*) EXTRA_WARNING "Unrecognized argument" "$arg" ;;
+		esac
+	done
+else
+	Usage
+fi

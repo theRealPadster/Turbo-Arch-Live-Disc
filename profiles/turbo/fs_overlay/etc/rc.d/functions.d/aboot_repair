@@ -1,0 +1,114 @@
+#===================================== Initial setup ====================================#
+
+source "/lib/aboot/functions.sh"
+parse_kernel_args
+r_backtitle="[ aBoot repair facility ]"
+def=1
+
+
+#=============================== Dialog releated functions ==============================#
+
+main_menu() {
+      local rv      
+          
+      rv=$(dialog --backtitle "${r_backtitle}" --stdout --title '[ REPAIR ]' --cancel-label "Done" \
+      --default-item "${def}" --menu "Choose an option or <Done> continue booting" 13 40 23 \
+      "1" "Repair" \
+      "2" "Shutdown" \
+      "3" "Reboot" \
+      "4" "Shell")
+
+    case ${rv} in
+        1) def=${rv}
+           repair_menu ;;
+        2) /sbin/shutdown -h now ;;
+        3) /sbin/shutdown -r now ;;
+        4) def=${rv}
+           /bin/bash
+           main_menu ;;
+        *) true ;;
+    esac
+}
+
+repair_menu() {
+    local dev_list dev_type dev
+    local rv
+    
+    for dev in $(ls /dev/[hsv]d*);do
+      dev_type="$(blkid -o value -s TYPE -p ${dev})"
+      if [ -z "${dev_type}" ];then
+        dev_type="none"
+      fi
+      
+      dev_list+="${dev} ${dev_type} "
+    done
+    
+    rv=$(dialog --backtitle "${r_backtitle}" --stdout --title '[ REPAIR ]' --cancel-label "Go Back" \
+      --default-item "${def}" --menu "Choose a partition or <Go Back> to return" 13 40 23 ${dev_list})
+
+    case ${rv} in
+        ???*) def=${rv}
+              repair ${rv}
+              repair_menu ;;
+        *) main_menu ;;
+    esac
+}
+
+
+#=================================== Repair function ===================================#
+
+repair() {
+    local mnt="/mnt/repair"
+    local shell
+    
+    mkdir -p "${mnt}"
+    if ! mount -t "$(blkid -o value -s TYPE -p ${@})" "${@}" "${mnt}"; then
+        dialog --backtitle "${r_backtitle}" --title '[ ERROR ]' --msgbox "Unable to mount ${@}" 6 40
+        repair_menu
+    fi
+    
+    if [[ ! -d "${mnt}/bin" || ! -d "${mnt}/lib" || ! -d "${mnt}/etc"  || ! -d "${mnt}/usr" ]];then
+        dialog --backtitle "${r_backtitle}" --title '[ ERROR ]' --msgbox "The selected partition is not usable" 6 40
+        umount -fl "${mnt}"
+        repair_menu
+    fi
+      
+    # TODO: useless because (most likely) the network hasn't been setuped yet
+    # cp -f "/etc/"{hosts,resolv.conf} "${mnt}/etc/"
+    
+    mount --rbind "/dev" "${mnt}/dev"
+    mount --bind "/proc" "${mnt}/proc"
+    mount --bind "/sys" "${mnt}/sys"
+    
+    if [ -e "${mnt}/bin/bash" ];then
+        shell="/bin/bash"
+    elif [ -e "${mnt}/bin/zsh" ];then
+        shell="/bin/zsh"
+    elif [ -e "${mnt}/bin/sh" ];then
+        shell="/bin/sh"
+    else
+        dialog --backtitle "${r_backtitle}" --title '[ ERROR ]' --msgbox "Unable to detect usable shell" 6 40 
+        umount -fl "${mnt}"
+        repair_menu
+    fi
+    
+    chroot "${mnt}" env PS1="(chroot) $PS1" ${shell} || dialog --backtitle "${r_backtitle}" --title '[ ERROR ]' \
+      --msgbox "Unable to chroot into ${mnt}" 6 40 
+    
+    umount -fl "${mnt}/dev"
+    umount -fl "${mnt}/proc"
+    umount -fl "${mnt}/sys"
+    umount -fl "${mnt}" 
+}
+
+
+#============================== Execute function if asigned =============================#
+
+aboot_repair() {
+    if [ -f "${store}/aboot_repair" ];then
+        _title "Initiating repair facility"
+        main_menu
+    fi
+}
+
+add_hook sysinit_end aboot_repair

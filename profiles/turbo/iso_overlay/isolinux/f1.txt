@@ -1,0 +1,23 @@
+
+   The following help pages can be reviewed by pressing F1-F4:
+
+    F1: this page
+    F2: utilities
+    F3: hook functions
+    F4: acceptable boot paramaters
+    F5: sane defaults
+    
+   Image information:
+    
+    Architecture: __ARCH__
+    Kernel: __KERNEL__
+    Build date: __DATE__
+    Label: __CD_LABEL__
+
+   Build tool information:
+    
+    Project name: aBuild
+    Version: v2.0.1
+    Home page: https://github.com/fluxer/aBuild
+    Developer: Ivailo Monev (a.k.a. SmiL3y)
+    For contacts: xakepa10@gmail.com

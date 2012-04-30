@@ -1,0 +1,187 @@
+#!/bin/bash
+
+source "/lib/aboot/functions.sh"
+parse_kernel_args
+
+#================================== aBoot mount handler ==================================#
+
+aboot_mount_handler() {
+    local f
+    
+    _title "Setting up Live environment"
+    
+    # Parse /proc/cmdline and override variables
+    parse_kernel_args
+    
+    # Run functions that were asigned
+    for f in ${LIVE_FUNC//,/ };do
+        case "${f}" in
+            # provide meta functions
+            shell) _info "Launching interactive shell for repairs"
+                   launch_interactive_shell ;;
+            *) ${f} || _warn2 "Error returned or unable to execute function" "${f}" ;;
+        esac
+    done
+}
+
+
+
+
+#==================================== Base functions ====================================#
+
+## Modprobe modules
+mods() {
+    _info "Loading necessary modules"
+    modprobe -a ${LIVE_MODPROBE//,/ } || _error2 "Failed to load the following modules" "${LIVE_MODPROBE}"
+}
+
+## Mount the boot device containing the neccesary files
+boot() {
+    local found="no"
+    local dev_list dev_type dev
+    local sf
+    
+    mkdir -p "${boot_mnt}"
+
+    # Sleep to wait for the device to show up
+    if [ ! -z "${LIVE_WAIT}" ];then
+        _info2 "Waiting for devices to show up" "${LIVE_WAIT}s"
+        sleep "${LIVE_WAIT}"
+    fi
+
+    # Add LIVE_BOOT_DEV, if it exists
+    if [ -e "${LIVE_BOOT_DEV}" ];then
+        dev_list="${LIVE_BOOT_DEV}"
+    fi
+    
+    # Add all removable devices (USB/CD/DVD/whatever)
+    for sf in /sys/block/*;do
+        if [ "$(cat ${sf}/removable)" = "1" ];then
+            dev_list="${dev_list} /dev/$(basename ${sf})"
+        fi
+    done
+
+    # Probe all devices from the list
+    _info "Looking for the boot device"
+    for dev in ${dev_list};do
+        dev_type="$(blkid -o value -s TYPE -p ${dev})"
+        
+        mount -o ro,loop -t "${dev_type}" "${dev}" "${boot_mnt}" || _warn2 "Failed to mount device" "${dev}"
+           
+        if [ -f "${boot_mnt}/.aboot" ];then
+            found="yes"
+            LIVE_BOOT_DEV="${dev}"
+            break
+        else
+            umount -fl "${dev}" 2> /dev/null
+        fi
+    done
+    
+    if [ "${found}" = "no" ];then
+        _error "Boot device was not found"
+    fi
+}
+
+## Loop mount the squashfs image on a read-only branch
+sfs() {
+    local sfs="${boot_mnt}/${LIVE_SFS_IMG}"
+    
+    mkdir -p "${ro_branch}"
+
+    if [ ! -e "${sfs}" ];then
+        _error2 "SquashFS image doesn't exists" "${sfs}"
+    else
+        _info "Mounting the SquashFS image"
+        mount -o ro,loop -t squashfs "${sfs}" "${ro_branch}" || _error "Failed to mount ${sfs} image to ${ro_branch}"
+    fi
+}
+ 
+## Assemble read-write branch
+tmpfs() {
+    mkdir -p "${rw_branch}"
+
+    # Create a temporary filesystem for read-write branch
+    _info "Mounting tmpfs filesystem, size=${LIVE_TMPFS_SIZE}"
+    mount -t tmpfs -o size="${LIVE_TMPFS_SIZE}" tmpfs "${rw_branch}" || _error2 "Unable to create tmpfs on" "${rw_branch}"
+}
+ 
+## Boot with filesystem to RAM
+c2r() {
+    # Check if the system has enough RAM, if not force off
+    if [ "${LIVE_COPY2RAM}" = "1" ];then
+        _info "Comparing the system RAM against the root size"
+        if [ "$(cat ${boot_mnt}/aboot/root.size)" -gt "$(df ${rw_branch} | awk '{print $2}' | tail -n1)" ];then
+            _warn "System does not have enough RAM to support Copy2RAM"
+            LIVE_COPY2RAM="0"
+        fi
+    fi
+
+    # Copy SquashFS image to RAM
+    if [ "${LIVE_COPY2RAM}" = "1" ];then        
+        _info "Copying files to RAM, this may take a while..."
+        cp -a "${ro_branch}/"* "${rw_branch}" || _error "An error accure while trying to copy files to tmpfs"
+    
+        _info "Unmounting the SquashFS image"
+        umount -fl "${ro_branch}" || _error2 "Unable to unmount the SquashFS image from" "${ro_branch}"
+    
+        _info "Unmounting the boot device"
+        umount -fl "${boot_mnt}" || _error2 "Unable to unmount the boot device from" "${boot_mnt}"
+    fi
+}
+ 
+## Assemble read-write branch with AUFS filesystem
+aufs() {
+    if [ "${LIVE_COPY2RAM}" != "1" ];then
+        mkdir -p "${newroot}"
+
+        # Merge read and write branches into one ultimate read-write filesystem
+        _info "Merging layers as AUFS filesystem"
+        mount -t aufs -o dirs="${rw_branch}"=rw:"${ro_branch}"=ro union "${newroot}" || _error2 "Unable to merge ${rw_branch} and ${ro_branch} on" "${newroot}"
+    fi
+}
+
+## Setup configure and repair functions if they were asigned
+setup() {
+    mkdir -p "${newroot}${store}"
+    
+    if [ "${LIVE_CONFIG}" = "1" ];then
+        _info "Setting up configure function"
+        touch "${newroot}${store}/aboot_config"
+    elif [ "${LIVE_CONFIG}" = "2" ];then
+        _info "Setting up interactive configure function"
+        touch "${newroot}${store}/aboot_config_interactive"
+    fi
+    
+    if [ "${LIVE_REPAIR}" = "1" ];then
+        _info "Setting up repair function"
+        touch "${newroot}${store}/aboot_repair"
+    fi
+    
+    if [ "${LIVE_EJECT}" = "1" ];then
+        _info "Setting up eject function"
+        echo "${LIVE_BOOT_DEV}" > "${newroot}/${store}/eject_boot"
+    fi
+    
+    /bin/sh
+}
+
+## Move mounted branches to the new root directory
+move() {       
+    local mnt
+      
+    if [ "${LIVE_COPY2RAM}" = "1" ];then
+        _info "Moving tmpfs to new root"
+        mount --move "${rw_branch}" "${newroot}" || _error2 "Unable to move-mount ${rw_branch} to" "${newroot}"
+    else
+        _info "Moving mounts to new root"
+        for mnt in "${boot_mnt}" "${rw_branch}" "${ro_branch}";do
+            mkdir -p "${newroot}${mnt}"
+            mount --move "${mnt}" "${newroot}${mnt}" || _error2 "Unable to move-mount ${mnt} to" "${newroot}${mnt}"
+        done
+    fi
+}
+
+## Override the mount handler with the main function defined here
+run_hook() {
+    mount_handler="aboot_mount_handler"
+}
