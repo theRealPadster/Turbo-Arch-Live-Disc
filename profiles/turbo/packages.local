@@ -19,4 +19,4 @@ profiles/turbo/pkgs/yaourt-1.1-1-any.pkg.tar.xz
 profiles/turbo/pkgs/gnome-shell-extension-common-git-20120430-1-x86_64.pkg.tar.xz
 profiles/turbo/pkgs/gnome-shell-extension-user-theme-git-20120430-1-x86_64.pkg.tar.xz
 profiles/turbo/pkgs/gloobus-preview-bzr-290-1-x86_64.pkg.tar.xz
-# profiles/turbo/pkgs/gloobus-sushi-bzr-4-1-x86_64.pkg.tar.xz
+profiles/turbo/pkgs/gloobus-sushi-bzr-4-1-x86_64.pkg.tar.xz
