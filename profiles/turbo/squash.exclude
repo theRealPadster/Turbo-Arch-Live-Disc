@@ -13,13 +13,11 @@ tmp/*
 swapfile
 
 # boot releated files
-boot/grub/grub.cfg
-boot/grub/menu.lst
-boot/grub/device.map
+boot/*
 
 # old,backup and all sort of trash files
 root/.bash_history
 etc/skel/.bash_history
-# var/log/*
+var/log/*.log
 var/cache/*
 .arch-chroot
