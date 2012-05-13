@@ -1,14 +1,12 @@
-#!/bin/bash
- 
 build() {
     # The name of the hook to be builded
     SCRIPT="aboot"
     
     # Base modules needed for CD/DVD/USB boot support
-    MODULES="cdrom usb_storage sd_mod sr_mod isofs loop squashfs"
+    MODULES="cdrom usb_storage sd_mod sr_mod isofs loop squashfs aufs"
     
     # Include the functions
-    add_file "/lib/aboot/functions.sh"
+    add_file "/lib/aboot/functions"
     
     # Handy examples
     # add_file <path>

@@ -43,7 +43,7 @@ runtime_check() {
         if [ ! -f "${PROFILE}/packages.remote" ];then
             ERROR "${PROFILE}/packages.remote doesn't exist"
         else
-            REMOTE_PACKAGES="$(grep -v '#' ${PROFILE}/packages.remote)"
+            REMOTE_PACKAGES="$(grep -v '#' ${PROFILE}/packages.remote)"        
         fi
         
         if [ ! -f "${PROFILE}/packages.local" ];then
@@ -62,10 +62,7 @@ runtime_check() {
         fi
     
         if [ ! -f "${PROFILE}/squash.exclude" ];then
-            WARNING "squash.exclude doesn't exist, setting to null"
-            LOCAL_PACKAGES=""
-        else
-            LOCAL_PACKAGES="$(grep -v '#' ${PROFILE}/packages.local)"
+            ERROR "squash.exclude doesn't exist"
         fi
     else
         EXTRA_ERROR "The specified profiles is not valid" "${1}"
@@ -113,10 +110,25 @@ fs_overlay() {
     fi
 }
 
+
+#========================== Copy ISO overlay =========================#
+
+iso_overlay() {
+    if [ -d "${BUILD_DIR}" ];then 
+        CHECK_LOCK "${BUILD_DIR}" 
+
+        INFO "Copying ISO overlay"
+        cp -rf "${PROFILE}/iso_overlay/"* "${BUILD_DIR}" || ERROR "Unable to copy the ISO overlay"
+    else
+        INFO "Build directory doesn't exists"
+    fi
+}
+
+
 #========================== Bootstrap basic root filesystem =========================#
 
 bootstrap() {
-    local pkgs="base"
+    local pkgs="$(pacman -Qgq base | sed 's|^linux||') ${REMOTE_PACKAGES}"
     
     if [ -d "${FILESYSTEM_DIR}" ];then 
         CHECK_LOCK "${FILESYSTEM_DIR}" 
@@ -129,14 +141,12 @@ bootstrap() {
             *) INFO "Aborting"; exit ;;
         esac
     fi
-
-    EXTRA_INFO "Using packages list" "${pkgs}"
-        
         
     INFO "Bootstrapping root filesystem"
-    mkarchroot -f "${FILESYSTEM_DIR}" "${REMOTE_PACKAGES}" || ERROR "Unable to bootstrap basic filesystem"
+    mkarchroot -f "${FILESYSTEM_DIR}" "${pkgs}" || ERROR "Unable to bootstrap basic filesystem"
     
-    package ${LOCAL_PACKAGES}
+    INFO "Installing local packages"
+    package "local"
     
     fs_overlay
         
@@ -151,11 +161,9 @@ package() {
         local pkg
         for pkg in ${@};do
             if [ -f "${pkg}" ];then
-                EXTRA_INFO "Copying package" "${pkg}"
-                cp -f "${pkg}" "${FILESYSTEM_DIR}/tmp/package.pkg.tar.xz"  || ERROR "Unable copy the package into filesystem" "${pkg}"
-                         
-                INFO "Installing local package into the filesystem"
-                mkarchroot -r "pacman -U ${PAC_OPTIONS} /tmp/package.pkg.tar.xz" "${FILESYSTEM_DIR}" || ERROR "Unable install package" "${pkg}"
+                cp -f "${pkg}" "${FILESYSTEM_DIR}/tmp/package.pkg.tar.xz"
+                mkarchroot -r "pacman -U ${PAC_OPTIONS} /tmp/package.pkg.tar.xz" "${FILESYSTEM_DIR}" || EXTRA_WARNING "Unable install package" "${pkg}"
+                rm "${FILESYSTEM_DIR}/tmp/package.pkg.tar.xz"
             else
                 EXTRA_WARNING "The package specified doesn't exist" "${pkg}"
             fi
@@ -222,6 +230,7 @@ prepare() {
     CHECK_LOCK "${FILESYSTEM_DIR}"  
     LOCK "${FILESYSTEM_DIR}"
     CHECK_FILESYSTEM
+    
     trap "UNLOCK \"${FILESYSTEM_DIR}\"; UNLOCK \"${BUILD_DIR}\"" EXIT
 
     CHECK_LOCK "${BUILD_DIR}"
@@ -241,7 +250,7 @@ prepare() {
     fi
 
     INFO "Generating kernel images"
-    mkarchroot -r "mkinitcpio -p $USE_KERNEL" "${FILESYSTEM_DIR}" || ERROR "Unable generate kernel images"
+    mkarchroot -r "mkinitcpio -p ${USE_KERNEL}" "${FILESYSTEM_DIR}" || ERROR "Unable generate kernel images"
 
     INFO "Copying boot files"
     LINUX="$(ls "${FILESYSTEM_DIR}/boot/"*initramfs*.img | tail -1)"
@@ -256,8 +265,20 @@ prepare() {
     
     if [ "${PKGS_ON_ISO}" = "1" ];then
         INFO "Generating packages list"
-        mkarchroot -r "pacman -Q" "${FILESYSTEM_DIR}" > "${BUILD_DIR}/packages.txt" || WARNING "Unable to generate the packages list"
+        mkarchroot -r "pacman -Q" "${FILESYSTEM_DIR}" > "${BUILD_DIR}/packages.list" || WARNING "Unable to generate the packages list"
     fi
+    
+    iso_overlay
+
+    INFO "Setting up isolinux.cfg"
+    sed -i "s|__CD_LABEL__|${ISO}|g" "${BUILD_DIR}/isolinux/isolinux.cfg" || WARNING "Unable to setup CD label"
+    sed -i "s|__BOOT_OPTIONS__|${BOOT_OPTIONS}|" "${BUILD_DIR}/isolinux/isolinux.cfg" || WARNING "Unable to setup boot options"
+    sed -i "s|__FALLBACK_OPTIONS__|${BOOT_FALLBACK_OPTIONS}|" "${BUILD_DIR}/isolinux/isolinux.cfg" || WARNING "Unable to setup recovery options"
+    INFO "Setting up image information"
+    sed -i "s|__ARCH__|$ARCH|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image architecture information"
+    sed -i "s|__KERNEL__|$USE_KERNEL|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image kernel information"
+    sed -i "s|__DATE__|$(date +%F)|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image build date information"
+    sed -i "s|__CD_LABEL__|${ISO}|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image label information"
 }
 
 #========================== Squash the root filesystem =========================#
@@ -285,31 +306,17 @@ squash() {
         mkarchroot -u "${FILESYSTEM_DIR}"
     fi
 
-    INFO "Compressing filesystem to SquashFS image"
-    mksquashfs "${FILESYSTEM_DIR}" "${SFS_IMAGE}" ${SQUASH_OPTIONS} || ERROR "Unable to squash the filesystem"
-
     INFO "Calculating filesystem size"
-    du -s --exclude-from="${PROFILE}/squash.exclude" "${FILESYSTEM_DIR}" | cut -f1 > "${BUILD_DIR}/aboot/root.size"
-
-    INFO "Checking SquashFS image size"
-    SQUASH_SIZE="$(du -s "${SFS_IMAGE}" | cut -f1)"
+    SQUASH_SIZE=$(du -s --exclude-from="${PROFILE}/squash.exclude" "${FILESYSTEM_DIR}" | cut -f1)
     EXTRA_DEBUG "squashfs size" "${SQUASH_SIZE}"
     if [ "${SQUASH_SIZE}" -gt "4000000" ];then
-        ERROR "The squashed filesystem size is greater than 4GB"
-    fi
-}
-
-#========================== Copy ISO overlay =========================#
-
-iso_overlay() {
-    if [ -d "${BUILD_DIR}" ];then 
-        CHECK_LOCK "${BUILD_DIR}" 
-
-        INFO "Copying ISO overlay"
-        cp -rf "${PROFILE}/iso_overlay/"* "${BUILD_DIR}" || ERROR "Unable to copy the ISO overlay"
+        ERROR "The root filesystem size is greater than 4GB"
     else
-        INFO "Build directory doesn't exists"
+        echo "${SQUASH_SIZE}" > "${BUILD_DIR}/aboot/root.size"
     fi
+
+    INFO "Compressing filesystem to SquashFS image"
+    mksquashfs "${FILESYSTEM_DIR}" "${SFS_IMAGE}" ${SQUASH_OPTIONS} || ERROR "Unable to squash the filesystem"
 }
 
 
@@ -323,20 +330,6 @@ iso() {
     if [ -e "${PROFILE}/${ISO}.iso" ];then
         rm -f "${PROFILE}/${ISO}.iso" || EXTRA_WARNING "Unable to delete" "${i}"
     fi
-
-    mkdir -p "${BUILD_DIR}/aboot"
-
-    iso_overlay
-
-    INFO "Setting up isolinux.cfg"
-    sed -i "s|__CD_LABEL__|${ISO}|g" "${BUILD_DIR}/isolinux/isolinux.cfg" || WARNING "Unable to setup CD label"
-    sed -i "s|__BOOT_OPTIONS__|${BOOT_OPTIONS}|" "${BUILD_DIR}/isolinux/isolinux.cfg" || WARNING "Unable to setup boot options"
-    sed -i "s|__FALLBACK_OPTIONS__|${BOOT_FALLBACK_OPTIONS}|" "${BUILD_DIR}/isolinux/isolinux.cfg" || WARNING "Unable to setup recovery options"
-    INFO "Setting up image information"
-    sed -i "s|__ARCH__|$ARCH|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image architecture information"
-    sed -i "s|__KERNEL__|$USE_KERNEL|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image kernel information"
-    sed -i "s|__DATE__|$(date +%F)|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image build date information"
-    sed -i "s|__CD_LABEL__|${ISO}|g" "${BUILD_DIR}/isolinux/f1.txt" || WARNING "Unable to setup image label information"
     
     touch "${BUILD_DIR}/.aboot"
 
@@ -357,7 +350,7 @@ iso() {
 
 Usage () {
 echo "
- aBuild v2.1.0 - set of Bash scripts to build Arch Linux CD/DVD images
+ aBuild v2.1.1 - set of Bash scripts to build Arch Linux CD/DVD images
  
   Usage: 
      

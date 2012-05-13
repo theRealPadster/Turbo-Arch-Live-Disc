@@ -1,0 +1,202 @@
+
+#====================================== Variables =======================================#
+
+_r="\033[00;31m"
+_y="\033[00;33m"
+_g="\033[00;32m"
+_b="\033[00;34m"
+_B="\033[01;34m"
+_W="\033[01;37m"
+_n="\033[00;0m"
+
+boot_mnt="/aboot/boot"
+ro_branch="/aboot/ro"
+rw_branch="/aboot/rw"
+newroot="/new_root"
+store="/aboot"
+
+
+#================================== Messages functions ==================================#
+
+msg() {
+    echo -e "${_B}:: ${_W}${1}${_n}"
+}
+
+msg2() {
+    echo -e "${_B}:: ${_W}${1}: ${_B}${2}${_n}"
+}
+
+warn() {
+    echo -e "${_y}WARNING: ${_W}${1}${_n}"
+}
+
+warn2() {
+    echo -e "${_y}WARNING: ${_W}${1}: ${_y}${2}${_n}"
+}
+
+error() {
+    echo -e "${_r}ERROR: ${_W}${1}${_n}"
+}
+
+error2() {
+    echo -e "${_r}ERROR: ${_W}${1}: ${_r}${2}${_n}"
+    _info "Launching interactive shell for repairs"
+    launch_interactive_shell
+}
+
+title() {
+    echo -e "\n ${_B}> ${_W}${1}${_n}\n"
+}
+
+
+#=================================== Common functions ===================================#
+
+parse_kernel_args() {
+    # aboot variables
+    LIVE_FUNC="mods,boot,sfs,tmpfs,c2r,aufs,move,config,setup"
+    LIVE_MODPROBE="cdrom,isofs,usb_storage,sd_mod,sr_mod,squashfs,aufs"
+    LIVE_WAIT=""
+    LIVE_BOOT_DEV=""
+    LIVE_SFS_IMG="aboot/root.sfs"
+    LIVE_TMPFS_SIZE="100%"
+    LIVE_REPAIR="0"
+    LIVE_INSTALL="0"
+    LIVE_COPY2RAM="0"
+    LIVE_EJECT="1"
+    LIVE_HOSTNAME="aboot"
+    LIVE_ROOT_PASS="null"
+    LIVE_HARDWARECLOCK="UTC"
+    LIVE_TIMEZONE="Europe/Sofia"
+    LIVE_KEYMAP="qwerty/us"
+    LIVE_CONSOLEFONT=""
+    LIVE_CONSOLEMAP=""
+    LIVE_LOCALE="en_US.UTF-8"
+    LIVE_DAEMON_LOCALE="yes"
+    LIVE_USECOLOR="yes"
+    LIVE_MODULES=""
+    LIVE_USEDMRAID="no"
+    LIVE_USEBTRFS="no"
+    LIVE_USELVM="no"
+    LIVE_USER="live"
+    LIVE_USER_PASS="${LIVE_USER}"
+    LIVE_USER_UID="1000"
+    LIVE_USER_SHELL="/bin/bash"
+    LIVE_USER_GROUPS="audio,lp,network,optical,storage,video,wheel,games,power"
+    LIVE_INTERFACE="eth0"
+    LIVE_ADDRESS=""
+    LIVE_NETMASK=""
+    LIVE_BROADCAST=""
+    LIVE_GATEWAY=""
+    LIVE_NETWORK_PERSIST="no"
+    LIVE_DAEMONS="syslog-ng,@network,crond"
+
+    # Override global variable values with those passed as kernel arguments
+    for arg in $(cat /proc/cmdline);do
+        case "${arg}" in
+            live_repair=1) LIVE_REPAIR="1" ;;
+            live_install=1) LIVE_INSTALL="1" ;;
+            live_copy2ram=1) LIVE_COPY2RAM="1" ;;
+            live_eject=0) LIVE_EJECT="0" ;;
+            live_func=*) LIVE_FUNC="${arg##*=}" ;;
+            live_modprobe=*) LIVE_MODPROBE="${arg##*=}" ;;
+            live_boot_dev=*) LIVE_BOOT_DEV="${arg##*=}" ;;
+            live_wait=*) LIVE_WAIT="${arg##*=}" ;;
+            live_sfs_img=*) LIVE_SFS_IMG="${arg##*=}" ;;
+            live_tmpfs_size=*) LIVE_TMPFS_SIZE="${arg##*=}" ;;
+            live_hostname=*) LIVE_HOSTNAME="${arg##*=}" ;;
+            live_root_pass=*) LIVE_ROOT_PASS="${arg##*=}" ;;
+            live_hardwareclock=UTC|live_hardwareclock=localtime) LIVE_HARDWARECLOCK="${arg##*=}" ;;
+            live_timezone=*) LIVE_TIMEZONE="${arg##*=}" ;;
+            live_keymap=*) LIVE_KEYMAP="${arg##*=}" ;;
+            live_consolefont=*) LIVE_CONSOLEFONT="${arg##*=}" ;;
+            live_consolemap=*) LIVE_CONSOLEMAP="${arg##*=}" ;;
+            live_locale=*) LIVE_LOCALE="${arg##*=}" ;;
+            live_daemon_locale=yes|live_daemon_locale=no) LIVE_DAEMON_LOCALE="${arg##*=}" ;;
+            live_usecolor=yes|live_usecolor=no) LIVE_USECOLOR="${arg##*=}" ;;
+            live_modules=*) LIVE_MODULES="${arg##*=}" ;;
+            live_usedmraid=yes|live_usedmraid=no)LIVE_USEDMRAID="${arg##*=}" ;;
+            live_usebtrfs=yes|live_usebtrfs=no)LIVE_USEBTRFS="${arg##*=}" ;;
+            live_uselvm=yes|live_uselvm=no)LIVE_USELVM="${arg##*=}" ;;
+            live_user=*) LIVE_USER="${arg##*=}"; LIVE_USER_PASS="${arg##*=}" ;;
+            live_user_pass=*) LIVE_USER_PASS="${arg##*=}" ;;
+            live_user_uid=*) LIVE_USER_UID="${arg##*=}" ;;
+            live_user_shell=*) LIVE_USER_SHELL="${arg##*=}" ;;
+            live_user_groups=*) LIVE_USER_GROUPS="${arg##*=}" ;;
+            live_interface=*) LIVE_INTERFACE="${arg##*=}" ;;
+            live_address=*) LIVE_ADDRESS="${arg##*=}" ;;
+            live_netmask=*) LIVE_NETMASK="${arg##*=}" ;;
+            live_broadcast=*) LIVE_BROADCAST="${arg##*=}" ;;
+            live_gateway=*) LIVE_GATEWAY="${arg##*=}" ;;
+            live_network_persist=yes|live_network_persist=no) LIVE_NETWORK_PERSIST="${arg##*=}" ;;
+            live_daemons=*) LIVE_DAEMONS="${arg##*=}" ;;
+        esac
+    done
+    
+    # Fix the variables
+    LIVE_FUNC="${LIVE_FUNC//,/ }"
+    LIVE_MODPROBE="${LIVE_MODPROBE//,/ }"
+    LIVE_MODULES="${LIVE_MODULES//,/ }"
+    LIVE_DAEMONS="${LIVE_DAEMONS//,/ }"
+}
+
+
+# $1: directory to prepare for chroot
+chroot_init() {
+    msg "Setting up chroot"
+    cp -f "/etc/"{hosts,resolv.conf} "${1}/etc/"
+    mount --rbind "/dev" "${1}/dev"
+    mount --bind "/proc" "${1}/proc"
+    mount --bind "/sys" "${1}/sys"
+}
+
+
+# $1: chroot directory to clean up
+chroot_exit() {
+    msg "Cleaning up chroot"
+    umount -fl "${1}/dev"
+    umount -fl "${1}/proc"
+    umount -fl "${1}/sys"
+}
+
+
+get_partitions() {
+    local dev_list dev_type dev
+    
+    for fs in /dev/[hsv]d[a-z][1-9];do
+        fss="${fs} - "
+    done
+    
+    for dev in $(ls /dev/[hsv]d[a-z][1-9] 2>/dev/null);do
+      dev_type="$(blkid -o value -s TYPE -p ${dev})"
+      if [ -z "${dev_type}" ];then
+        dev_type="none"
+      fi
+      
+      dev_list+="${dev} ${dev_type} "
+    done
+    
+    echo "${dev_list}"
+}
+
+
+# $1: block device
+get_uuid()
+{
+    echo "$(blkid -s UUID -o value ${1})"
+}
+
+
+# $1: block device
+get_fstype() {
+  echo "$(blkid -o value -s TYPE -p ${1})"
+}
+
+
+# $1: block device
+# $2: mount point
+# $3: mount options
+mount_any() {
+    local fstype="$(get_fstype ${1})"
+    mkdir -p "${2}"
+    mount -t "${fstype}" "${1}" "${2}" ${3}
+}

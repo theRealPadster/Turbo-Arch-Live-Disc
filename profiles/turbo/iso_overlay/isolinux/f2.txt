@@ -1,13 +1,14 @@
 
+
    The following utilities are provided (by default):
 
     ALIVE: initcpio hook which does the most basic setup needed to make
     use of the SquashFS as Live CD/DVD/USB environment and provides
-    read-write fielsystem with the help of AUFS3.
+    read-write fielsystem with the help of AUFS3. Also allows configuration
+    of the Live environment by passing kernel arguments.
     
-    ALIVE_CONFIG: rc.d function which if executed (see boot parameters page)
-    will configure the Live environment. Setting up the hostname, live user,
-    their passwords, locales and more.
-
     ALIVE_REPAIR: rc.d function which if executed provides rescue facility
     to repair a broken installation of Linux by chrooting into it.
+    
+    ALIVE_INSTALL: rc.d function which if executed provides Live installer
+    to install the Live CD/DVD/USB to Hard-Drive.

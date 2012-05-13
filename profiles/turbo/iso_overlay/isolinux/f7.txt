@@ -1,0 +1,26 @@
+
+
+    LIVE_MODULES=
+    LIVE_USEDMRAID=no
+    LIVE_USEBTRFS=no
+    LIVE_USELVM=no
+    LIVE_USER=live
+    LIVE_USER_PASS=${LIVE_USER}
+    LIVE_USER_UID=1000
+    LIVE_USER_SHELL=/bin/bash
+    LIVE_USER_GROUPS=audio,lp,network,optical,storage,video,wheel,games,power
+    LIVE_INTERFACE=eth0
+    LIVE_ADDRESS=
+    LIVE_NETMASK=
+    LIVE_BROADCAST=
+    LIVE_GATEWAY=
+    LIVE_NETWORK_PERSIST=no
+    LIVE_DAEMONS=syslog-ng network crond   
+    
+    
+    
+      
+    
+    
+    
+     <-- 

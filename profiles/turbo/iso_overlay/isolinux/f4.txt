@@ -1,8 +1,9 @@
 
+
    The aLive hook accept the following variables as kernel arguments:
 
-    LIVE_CONFIG: wheater or not to configure the Live environment
     LIVE_REPAIR: wheater or not to provide repair facility at boot
+    LIVE_INSTALL: wheater or not to provide Live installer at boot
     LIVE_COPY2RAM: wheater or not to copy the SquashFS into RAM
     LIVE_EJECT: wheater or not to eject the boot media at shutdown/reboot
     LIVE_FUNC: array of the functions to be executed at boot
@@ -13,12 +14,13 @@
     LIVE_TMPFS_SIZE: size for tmpfs, accepts % (i.e. 50%) or MB (i.e. 100M)
     LIVE_HOSTNAME: hostname for the live environment
     LIVE_ROOT_PASS: password for the root user
+    LIVE_HARDWARECLOCK: type of clock to be setuped
     LIVE_TIMEZONE: timezone for the live environment
     LIVE_KEYMAP: keymap for the live environment
+    LIVE_CONSOLEFONT: font for tty-console
+    LIVE_CONSOLEMAP: 
     LIVE_LOCALE: locales for the live environment
-    LIVE_USER: name of the live (regular) user to be added
-    LIVE_USER_PASS: password for the live user
-    LIVE_USER_UID: UID of the live user
-    LIVE_USER_SHELL: default shell for the live user
-    LIVE_USER_GROUPS: groups which the live user should be member of
-    LIVE_INTERFACE: network interface for the live environment
+    LIVE_DAEMON_LOCALE: wheater or not to use colors for boot messages
+    LIVE_USECOLOR=: wheater or not to use colors for boot messages
+    
+                                                                       -->

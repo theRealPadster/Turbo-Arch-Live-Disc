@@ -1,19 +1,15 @@
-#===================================== Initial setup ====================================#
-
-source "/lib/aboot/functions.sh"
-parse_kernel_args
-
 #============================== Execute function if asigned =============================#
 
 eject_boot() {  
+    source "/lib/aboot/functions"
     local boot_dev
       
     if [ -f "${store}/eject_boot" ];then
-        _title "Ejecting boot device"
-        boot_dev="$(cat ${store}/aboot/eject_boot)"
-        eject "${boot_dev}" || _warn2 "Unable to eject boot device" "${boot_dev}"
+        msg "Ejecting boot device"
+        boot_dev="$(cat ${store}/eject_boot)"
+        eject "${boot_dev}" || warn2 "Unable to eject boot device" "${boot_dev}"
         
-        _info "Press any key to continue"
+        msg "Press any key to continue"
         read junk
     fi
 }

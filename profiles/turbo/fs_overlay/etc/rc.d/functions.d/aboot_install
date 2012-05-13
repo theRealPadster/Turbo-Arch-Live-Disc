@@ -1,0 +1,270 @@
+#!/bin/bash
+
+#================================ Dialog menus functions ================================#
+
+install_main_menu() {
+    local rv
+    
+    rv=$(dialog --stdout --backtitle "${i_backtitle}" --title '[ CONFIGURE ]' --cancel-label "Done" \
+      --default-item "${def}" --menu "Choose an option or <Done> to continue booting" 16 40 17 \
+        "-" "Partition" \
+        "2" "FileSystems" \
+        "3" "Install" \
+        "-" "Configure" \
+        "-" "Edit configs" \
+        "6" "Chroot" \
+        "-" "--------------------" \
+        "7" "Shutdown" \
+        "8" "Reboot" \
+        "9" "Shell")
+    
+    case "${rv}" in
+        1) def="${rv}"
+           main_menu ;;
+        
+        2) def="${rv}"
+           filesystems_menu ;;
+        
+        3) def="${rv}"
+           install_live | dialog --backtitle "${i_backtitle}" --title '[ INSTALLING ]' --progressbox "Installing, please wait..." 16 60 
+           install_main_menu ;;
+          
+        4) def="${rv}"
+           install_main_menu ;;
+           
+        5) def="${rv}"
+           install_main_menu ;;
+          
+        6) def="${rv}"
+           chroot_target
+           install_main_menu ;;
+                  
+        7) /sbin/shutdown -h now ;;
+        8) /sbin/shutdown -r now ;;
+        9) def="${rv}"
+           /bin/bash
+           install_main_menu;; 
+        -) install_main_menu ;;
+        *) true ;;
+      esac
+}
+
+filesystems_menu() {
+    local rv
+    
+    rv=$(dialog --stdout --backtitle "${i_backtitle}" --title '[ CONFIGURE ]' --cancel-label "Go Back" \
+      --default-item "${def}" --menu "Choose an option or <Go Back> to return" 16 40 17 \
+        "1" "/         [${ROOT_PART}]" \
+        "2" "/boot     [${BOOT_PART}]" \
+        "3" "/home     [${HOME_PART}]" \
+        "4" "/usr      [${USR_PART}]" \
+        "5" "swap      [${SWAP_PART}]")
+    
+    case "${rv}" in
+        1) def="${rv}"
+           ROOT_PART="$(choose_part || echo ${ROOT_PART})"
+           filesystems_menu ;;
+        
+        2) def="${rv}"
+           BOOT_PART="$(choose_part || echo ${BOOT_PART})"
+           filesystems_menu ;;
+        
+        3) def="${rv}"
+           HOME_PART="$(choose_part || echo ${HOME_PART})"
+           filesystems_menu ;;
+
+        4) def="${rv}"
+           USR_PART="$(choose_part || echo ${USR_PART})"
+           filesystems_menu ;;
+           
+        5) def="${rv}"
+           SWAP_PART="$(choose_part || echo ${SWAP_PART})"
+           filesystems_menu ;;
+
+        *) install_main_menu ;;
+      esac
+}
+
+install_live() {
+    local kernel="$(ls ${install_mnt}/lib/modules | head -1)"
+    mkdir -p "${install_mnt}"    
+    
+    # Mount root partition
+    if [ -z "${ROOT_PART}" ];then
+        error "You must specify at least the Root partition"
+    else
+        if [ "${ROOT_MOUNTED}" != "1" ];then
+            msg "Mounting /"
+            umount -fl "${ROOT_PART}" 2> /dev/null
+            mount_any "${ROOT_PART}" "${install_mnt}"
+            msg "Adding entry to fstab for /"
+            echo "${ROOT_PART} / $(get_fstype ${ROOT_PART}) defaults 0 1" > "${install_mnt}/etc/fstab"
+        else
+            warn "/ already mounted, skipping"
+        fi
+        
+        if [ "${?}" != "0" ];then
+            error "Unable to mount ${ROOT_PART}"
+        else
+            ROOT_MOUNTED="1"
+        fi
+    fi
+    
+    # Mount boot partition
+    if [ -n "${BOOT_PART}" ];then
+        if [ "${BOOT_MOUNTED}" != "1" ];then
+            msg "Mounting /boot"
+            umount -fl "${BOOT_PART}" 2> /dev/null
+            mount_any "${BOOT_PART}" "${install_mnt}/boot"
+            msg "Adding entry to fstab for /boot"
+            echo "${BOOT_PART} /boot $(get_fstype ${BOOT_PART}) defaults 0 1" >> "${install_mnt}/etc/fstab"
+        else
+            warn "/boot already mounted, skipping"
+        fi
+        
+        if [ "${?}" != "0" ];then
+            error "Unable to mount ${BOOT_PART}"
+        else
+            BOOT_MOUNTED="1"
+        fi
+    fi 
+    
+    # Mount home partition
+    if [ -n "${HOME_PART}" ];then
+        if [ "${HOME_MOUNTED}" != "1" ];then
+            msg "Mounting /home"
+            umount -fl "${HOME_PART}" 2> /dev/null
+            mount_any "${HOME_PART}" "${install_mnt}/home"
+            msg "Adding entry to fstab for /home"
+            echo "${HOME_PART} /home $(get_fstype ${HOME_PART}) defaults 0 2" >> "${install_mnt}/etc/fstab"
+        else
+            warn "/home already mounted, skipping"
+        fi
+        
+        if [ "${?}" != "0" ];then
+            error "Unable to mount ${HOME_PART}"
+        else
+            HOME_MOUNTED="1"
+        fi
+    fi 
+    
+    # Mount usr partition
+    if [ -n "${USR_PART}" ];then
+        if [ "${USR_MOUNTED}" != "1" ];then
+            msg "Mounting /usr"
+            umount -fl "${USR_PART}" 2> /dev/null
+            mount_any "${USR_PART}" "${install_mnt}/usr"
+            msg "Adding entry to fstab for /usr"
+            echo "${USR_PART} /usr $(get_fstype ${USR_PART}) defaults 0 2" >> "${install_mnt}/etc/fstab"
+        else
+            warn "/usr already mounted, skipping"
+        fi
+        
+        if [ "${?}" != "0" ];then
+            error "Unable to mount ${USR_PART}"
+        else
+            USR_MOUNTED="1"
+        fi
+    fi
+    
+    # Add swap partition to fstab
+    if [ -n "${SWAP_PART}" ];then
+        msg "Adding entry to fstab for swap"
+        echo "${SWAP_PART} none swap defaults 0 0" >> "${install_mnt}/etc/fstab"
+    fi
+    
+    # Copy to root filesystem 
+    if [ "${COPY_DONE}" != "1" ];then
+        msg "Copying filesystem"
+        rsync -a --exclude-from "/lib/aboot/install.exclude" "${ro_branch}/"* "${install_mnt}"
+    else
+        warn "Filesystem already copied, skipping"
+    fi
+    
+    if [ "${?}" != "0" ];then
+        error "Unable to copy the filesystem"
+    else
+        COPY_DONE="1"
+    fi
+
+    msg "Removing aboot from HOOKS"
+    sed -i "s|^aboot||g" "${install_mnt}/etc/mkinitcpio.conf"
+
+    msg "Removing unnecessary packages"
+    # TODO: aboot-git package is not documented and used yet
+    # chroot "${install_mnt}" pacman -Rc aboot-git --noconfirm --force || true
+    
+    if [ "${?}" != "0" ];then
+        error "Unable to remove live packages"
+    fi
+    
+    # Generate initcpio image
+    if [ "${INITRD_DONE}" != "1" ];then
+        msg "Generating Kernel image"
+        chroot "${install_mnt}" mkinitcpio -p "${kernel}"
+    else
+        warn "Initrd image already generated, skipping"
+    fi
+    
+    if [ "${?}" != "0" ];then
+        error "Unable to generating Kernel image"
+    else
+        INITRD_DONE="1"
+    fi
+    
+    install_main_menu
+}
+
+chroot_target() {
+    if [ "${COPY_DONE}" = "1" ];then
+        chroot_init "${install_mnt}"
+        chroot "${install_mnt}"
+        chroot_exit "${install_mnt}"
+    else
+      dialog --backtitle "${i_backtitle}" --title '[ ERROR ]' --msgbox "You need to install the Live envrinment first" 6 40
+    fi
+}
+
+#=============================== Dialog releated functions ==============================#
+
+choose_part() {
+    dialog --stdout --backtitle "${i_backtitle}" --title '[ PARTITION ]' --cancel-label "<Go Back>" \
+      --menu "Choose an option or <Go Back> to return" 16 40 17 $(get_partitions) "" "-"
+}
+
+choose_fs() {
+    dialog --stdout --backtitle "${i_backtitle}" --title '[ FILESYSTEM ]' --cancel-label "<Go Back>" \
+      --menu "Choose an option or <Go Back> to return" 16 40 17 \
+      "ext3" "-" \
+      "ext4" "-" \
+      "jfs" "-" \
+      "xfs" "-"
+}
+
+
+#============================== Execute function if asigned =============================#
+
+aboot_install() {    
+    source "/lib/aboot/functions"
+    
+    if [ -f "${store}/aboot_install" ];then
+        i_backtitle="[ aBoot Live installer ]"
+        install_mnt="/mnt/target"
+        def=1
+        parse_kernel_args
+        
+        # Fix colors
+        unset _r
+        unset _y
+        unset _g
+        unset _b
+        unset _B
+        unset _W
+        unset _n
+        
+        _title "Initiating Live installer"  
+        install_main_menu     
+    fi
+}
+
+add_hook multi_end aboot_install

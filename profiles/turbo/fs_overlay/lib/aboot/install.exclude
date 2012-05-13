@@ -1,0 +1,19 @@
+# pseudo filesystems
+dev/*
+sys/*
+proc/*
+
+# tepmorary directories
+cdrom/*
+media/*
+mnt/*
+tmp/*
+
+# swap file
+swapfile
+
+# old,backup and all sort of trash files
+root/.bash_history
+etc/skel/.bash_history
+var/log/*.log
+var/cache/*

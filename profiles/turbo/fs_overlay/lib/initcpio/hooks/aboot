@@ -1,52 +1,68 @@
-#!/bin/bash
+source "/lib/aboot/functions"
 
-source "/lib/aboot/functions.sh"
-parse_kernel_args
+errsh() {
+    error "${1}"
+    msg "Launching interactive shell for repairs"
+    launch_interactive_shell
+}
+
+errsh2() {
+    error2 "${1}" "${2}"
+    msg "Launching interactive shell for repairs"
+    launch_interactive_shell
+}
 
 #================================== aBoot mount handler ==================================#
 
+## Main function which executes all others on demand
 aboot_mount_handler() {
     local f
     
-    _title "Setting up Live environment"
+    title "aBoot v1.3.1"
     
     # Parse /proc/cmdline and override variables
     parse_kernel_args
     
     # Run functions that were asigned
-    for f in ${LIVE_FUNC//,/ };do
+    for f in ${LIVE_FUNC};do
         case "${f}" in
             # provide meta functions
-            shell) _info "Launching interactive shell for repairs"
+            shell) msg "Launching interactive shell for repairs"
                    launch_interactive_shell ;;
-            *) ${f} || _warn2 "Error returned or unable to execute function" "${f}" ;;
+            *) ${f} || warn2 "Error returned or unable to execute function" "${f}" ;;
         esac
     done
 }
 
-
+## Override the mount handler with the main function defined here
+run_hook() {
+    mount_handler="aboot_mount_handler"
+}
 
 
 #==================================== Base functions ====================================#
 
 ## Modprobe modules
 mods() {
-    _info "Loading necessary modules"
-    modprobe -a ${LIVE_MODPROBE//,/ } || _error2 "Failed to load the following modules" "${LIVE_MODPROBE}"
+    msg "Loading necessary modules"
+    modprobe -a ${LIVE_MODPROBE} || errsh2 "Failed to load the following modules" "${LIVE_MODPROBE}"
 }
 
 ## Mount the boot device containing the neccesary files
 boot() {
     local found="no"
-    local dev_list dev_type dev
+    local dev_list dev
     local sf
     
     mkdir -p "${boot_mnt}"
 
     # Sleep to wait for the device to show up
-    if [ ! -z "${LIVE_WAIT}" ];then
-        _info2 "Waiting for devices to show up" "${LIVE_WAIT}s"
-        sleep "${LIVE_WAIT}"
+    if [ -n "${LIVE_WAIT}" ];then
+        while [ "${LIVE_WAIT}" -gt "1" ];do
+            echo -en "${_B}:: ${_W}Waiting ${LIVE_WAIT}s for devices to show up     ${_n}\r"
+            sleep 1
+            let LIVE_WAIT-="1"
+        done
     fi
 
     # Add LIVE_BOOT_DEV, if it exists
@@ -62,11 +78,9 @@ boot() {
     done
 
     # Probe all devices from the list
-    _info "Looking for the boot device"
+    msg "Looking for the boot device"
     for dev in ${dev_list};do
-        dev_type="$(blkid -o value -s TYPE -p ${dev})"
-        
-        mount -o ro,loop -t "${dev_type}" "${dev}" "${boot_mnt}" || _warn2 "Failed to mount device" "${dev}"
+        mount -o ro,loop "${dev}" "${boot_mnt}" || warn2 "Failed to mount device" "${dev}"
            
         if [ -f "${boot_mnt}/.aboot" ];then
             found="yes"
@@ -78,7 +92,7 @@ boot() {
     done
     
     if [ "${found}" = "no" ];then
-        _error "Boot device was not found"
+        errsh "Boot device was not found"
     fi
 }
 
@@ -89,10 +103,10 @@ sfs() {
     mkdir -p "${ro_branch}"
 
     if [ ! -e "${sfs}" ];then
-        _error2 "SquashFS image doesn't exists" "${sfs}"
+        errsh2 "SquashFS image doesn't exists" "${sfs}"
     else
-        _info "Mounting the SquashFS image"
-        mount -o ro,loop -t squashfs "${sfs}" "${ro_branch}" || _error "Failed to mount ${sfs} image to ${ro_branch}"
+        msg "Mounting the SquashFS image"
+        mount -o ro,loop "${sfs}" "${ro_branch}" || errsh2 "Failed to mount SquashFS image" "${sfs}"
     fi
 }
  
@@ -101,31 +115,31 @@ tmpfs() {
     mkdir -p "${rw_branch}"
 
     # Create a temporary filesystem for read-write branch
-    _info "Mounting tmpfs filesystem, size=${LIVE_TMPFS_SIZE}"
-    mount -t tmpfs -o size="${LIVE_TMPFS_SIZE}" tmpfs "${rw_branch}" || _error2 "Unable to create tmpfs on" "${rw_branch}"
+    msg "Mounting tmpfs filesystem, size=${LIVE_TMPFS_SIZE}"
+    mount -t tmpfs -o size="${LIVE_TMPFS_SIZE}" tmpfs "${rw_branch}" || errsh "Unable to mount tmpfs"
 }
  
 ## Boot with filesystem to RAM
 c2r() {
     # Check if the system has enough RAM, if not force off
     if [ "${LIVE_COPY2RAM}" = "1" ];then
-        _info "Comparing the system RAM against the root size"
+        msg "Comparing the system RAM against the root size"
         if [ "$(cat ${boot_mnt}/aboot/root.size)" -gt "$(df ${rw_branch} | awk '{print $2}' | tail -n1)" ];then
-            _warn "System does not have enough RAM to support Copy2RAM"
+            warn "System does not have enough RAM to support Copy2RAM"
             LIVE_COPY2RAM="0"
         fi
     fi
 
     # Copy SquashFS image to RAM
     if [ "${LIVE_COPY2RAM}" = "1" ];then        
-        _info "Copying files to RAM, this may take a while..."
-        cp -a "${ro_branch}/"* "${rw_branch}" || _error "An error accure while trying to copy files to tmpfs"
+        msg "Copying files to RAM, this may take a while..."
+        cp -a "${ro_branch}/"* "${rw_branch}" || errsh "An error accure while trying to copy files to tmpfs"
     
-        _info "Unmounting the SquashFS image"
-        umount -fl "${ro_branch}" || _error2 "Unable to unmount the SquashFS image from" "${ro_branch}"
+        msg "Unmounting the SquashFS image"
+        umount -fl "${ro_branch}" || errsh "Unable to unmount the SquashFS image"
     
-        _info "Unmounting the boot device"
-        umount -fl "${boot_mnt}" || _error2 "Unable to unmount the boot device from" "${boot_mnt}"
+        msg "Unmounting the boot device"
+        umount -fl "${boot_mnt}" || errsh "Unable to unmount the boot device"
     fi
 }
  
@@ -135,51 +149,141 @@ aufs() {
         mkdir -p "${newroot}"
 
         # Merge read and write branches into one ultimate read-write filesystem
-        _info "Merging layers as AUFS filesystem"
-        mount -t aufs -o dirs="${rw_branch}"=rw:"${ro_branch}"=ro union "${newroot}" || _error2 "Unable to merge ${rw_branch} and ${ro_branch} on" "${newroot}"
+        msg "Merging layers as AUFS filesystem"
+        mount -t aufs -o dirs="${rw_branch}"=rw:"${ro_branch}"=ro union "${newroot}" || errsh2 "Unable to merge ${rw_branch} and ${ro_branch}"
     fi
 }
 
-## Setup configure and repair functions if they were asigned
-setup() {
-    mkdir -p "${newroot}${store}"
-    
-    if [ "${LIVE_CONFIG}" = "1" ];then
-        _info "Setting up configure function"
-        touch "${newroot}${store}/aboot_config"
-    elif [ "${LIVE_CONFIG}" = "2" ];then
-        _info "Setting up interactive configure function"
-        touch "${newroot}${store}/aboot_config_interactive"
-    fi
-    
-    if [ "${LIVE_REPAIR}" = "1" ];then
-        _info "Setting up repair function"
-        touch "${newroot}${store}/aboot_repair"
-    fi
-    
-    if [ "${LIVE_EJECT}" = "1" ];then
-        _info "Setting up eject function"
-        echo "${LIVE_BOOT_DEV}" > "${newroot}/${store}/eject_boot"
-    fi
-}
 
 ## Move mounted branches to the new root directory
-move() {       
+move() {
     local mnt
       
     if [ "${LIVE_COPY2RAM}" = "1" ];then
-        _info "Moving tmpfs to new root"
-        mount --move "${rw_branch}" "${newroot}" || _error2 "Unable to move-mount ${rw_branch} to" "${newroot}"
+        msg "Moving tmpfs to new root"
+        mount --move "${rw_branch}" "${newroot}" || errsh "Unable to move-mount ${rw_branch} to ${newroot}"
     else
-        _info "Moving mounts to new root"
+        msg "Moving mounts to new root"
         for mnt in "${boot_mnt}" "${rw_branch}" "${ro_branch}";do
             mkdir -p "${newroot}${mnt}"
-            mount --move "${mnt}" "${newroot}${mnt}" || _error2 "Unable to move-mount ${mnt} to" "${newroot}${mnt}"
+            mount --move "${mnt}" "${newroot}${mnt}" || errsh "Unable to move-mount ${mnt} to ${newroot}${mnt}"
         done
     fi
 }
 
-## Override the mount handler with the main function defined here
-run_hook() {
-    mount_handler="aboot_mount_handler"
+## Configure the Live environment
+config() {
+    msg "Configuring Live environment"
+    
+    if [ "${LIVE_USER}" != "null" ];then
+        chroot "${newroot}" /usr/sbin/useradd -m -u "${LIVE_USER_UID}" -g users -G ${LIVE_USER_GROUPS} -d "/home/${LIVE_USER}" -s "${LIVE_USER_SHELL}" "${LIVE_USER}" || warn2 "Unable to create live user" "${LIVE_USER}"
+        echo -e "${LIVE_USER_PASS}\n${LIVE_USER_PASS}" | chroot "${newroot}" /usr/bin/passwd "${LIVE_USER}" 2> /dev/null || warn2 "Unable to setup the password for user" "${LIVE_USER}"
+    fi
+    
+    if [ "${LIVE_ROOT_PASS}" != "null" ];then
+        echo -e "${LIVE_ROOT_PASS}\n${LIVE_ROOT_PASS}" | chroot "${newroot}" /usr/bin/passwd root 2> /dev/null || warn "Unable to setup the password for the root user"
+        rm -f "${newroot}/pam.d/su" "${newroot}/sudoers.d/g_wheel"
+    fi
+    
+    if [ "${LIVE_HOSTNAME}" != "null" ];then
+        sed -i "s|^HOSTNAME=.*|HOSTNAME=\"${LIVE_HOSTNAME}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the hostname to" "${LIVE_HOSTNAME}"
+    fi
+
+    if [ "${LIVE_HARDWARECLOCK}" != "null" ];then
+        sed -i "s|^HARDWARECLOCK=.*|HARDWARECLOCK=\"${LIVE_HARDWARECLOCK}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the hardware clock to" "${LIVE_HARDWARECLOCK}"
+    fi
+    
+    if [ "${LIVE_TIMEZONE}" != "null" ];then
+        sed -i "s|^TIMEZONE=.*|TIMEZONE=\"${LIVE_TIMEZONE}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the timezone to" "${LIVE_TIMEZONE}"
+    fi
+    
+    if [ "${LIVE_KEYMAP}" != "null" ];then
+        sed -i "s|^KEYMAP=.*|KEYMAP=\"${LIVE_KEYMAP}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the keymap to" "${LIVE_KEYMAP}"
+    fi
+    
+    if [ "${LIVE_CONSOLEFONT}" != "null" ];then
+        sed -i "s|^CONSOLEFONT=.*|CONSOLEFONT=\"${LIVE_CONSOLEFONT}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the console font to" "${LIVE_CONSOLEFONT}"
+    fi
+    
+    if [ "${LIVE_CONSOLEMAP}" != "null" ];then
+        sed -i "s|^CONSOLEMAP=.*|CONSOLEMAP=\"${LIVE_CONSOLEMAP}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the console map to" "${LIVE_CONSOLEMAP}"
+    fi
+
+    if [ "${LIVE_LOCALE}" != "null" ];then
+        (sed -i "s|^LOCALE=.*|LOCALE=\"${LIVE_LOCALE}\"|g" "${newroot}/etc/rc.conf"
+        echo "${LIVE_LOCALE} ${LIVE_LOCALE##*.}" > "${newroot}/etc/locale.gen"
+        chroot "${newroot}" /usr/sbin/locale-gen 1>/dev/null) || warn2 "Unable to setup the locales to" "${LIVE_LOCALE}"
+    fi
+
+    if [ "${LIVE_DAEMON_LOCALE}" != "null" ];then
+        sed -i "s|^DAEMON_LOCALE=.*|DAEMON_LOCALE=\"${LIVE_DAEMON_LOCALE}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the daemon locale to" "${LIVE_DAEMON_LOCALE}"
+    fi
+
+    if [ "${LIVE_USECOLOR}" != "null" ];then
+        sed -i "s|^USECOLOR=.*|USECOLOR=\"${LIVE_USECOLOR}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the usecolor to" "${LIVE_USECOLOR}"
+    fi
+    
+    if [ "${LIVE_MODULES}" != "null" ];then
+        sed -i "s|^MODULES=.*|MODULES=\(${LIVE_MODULES}\)|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the modules to" "${LIVE_MODULES}"
+    fi
+    
+     if [ "${LIVE_USEDMRAID}" != "null" ];then
+        sed -i "s|^USEDMRAID=.*|USEDMRAID=\"${LIVE_USEDMRAID}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the usedmraid to" "${LIVE_USEDMRAID}"
+    fi
+    
+    if [ "${LIVE_USEBTRFS}" != "null" ];then
+        sed -i "s|^USEBTRFS=.*|USEBTRFS=\"${LIVE_USEBTRFS}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the usebtrfs to" "${LIVE_USEBTRFS}"
+    fi
+    
+    if [ "${LIVE_USELVM}" != "null" ];then    
+        sed -i "s|^USELVM=.*|USELVM=\"${LIVE_USELVM}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the uselvm to" "${LIVE_USELVM}"
+    fi
+    
+    if [ "${LIVE_INTERFACE}" != "null" ];then
+        sed -i "s|^interface=.*|interface=\"${LIVE_INTERFACE}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the network interface to" "${LIVE_INTERFACE}"
+    fi
+    
+    if [ "${LIVE_ADDRESS}" != "null" ];then    
+        sed -i "s|^address=.*|address=\"${LIVE_ADDRESS}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the network address to" "${LIVE_ADDRESS}"
+    fi
+    
+    if [ "${LIVE_NETMASK}" != "null" ];then    
+        sed -i "s|^netmask=.*|netmask=\"${LIVE_NETMASK}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the netmask to" "${LIVE_NETMASK}"
+    fi
+    
+    if [ "${LIVE_BROADCAST}" != "null" ];then    
+        sed -i "s|^broadcast=.*|broadcast=\"${LIVE_BROADCAST}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the broadcast to" "${LIVE_BROADCAST}"
+    fi
+    
+    if [ "${LIVE_GATEWAY}" != "null" ];then    
+        sed -i "s|^gateway=.*|gateway=\"${LIVE_GATEWAY}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the gateway to" "${LIVE_GATEWAY}"
+    fi
+    
+    if [ "${LIVE_NETWORK_PERSIST}" != "null" ];then    
+        sed -i "s|^NETWORK_PERSIST=.*|NETWORK_PERSIST=\"${LIVE_NETWORK_PERSIST}\"|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the network persist to" "${LIVE_NETWORK_PERSIST}"
+    fi
+    
+    if [ "${LIVE_DAEMONS}" != "null" ];then    
+        sed -i "s|^DAEMONS=.*|DAEMONS=\(${LIVE_DAEMONS}\)|g" "${newroot}/etc/rc.conf" || warn2 "Unable to setup the daemons to" "${LIVE_DAEMONS}"
+    fi
+}
+
+## Setup repair and eject functions if they were asigned
+setup() {
+    mkdir -p "${newroot}${store}"
+    
+    if [ "${LIVE_REPAIR}" = "1" ];then
+        msg "Setting up repair function"
+        touch "${newroot}${store}/aboot_repair" || warn "Unable to setup repair function"
+    fi
+    
+    if [ "${LIVE_INSTALL}" = "1" ];then
+        msg "Setting up Live installer function"
+        touch "${newroot}${store}/aboot_install" || warn "Unable to setup Live installer function"
+    fi
+    
+    if [ "${LIVE_EJECT}" = "1" ];then
+        msg "Setting up eject function"
+        echo "${LIVE_BOOT_DEV}" > "${newroot}/${store}/eject_boot" || warn "Unable to setup eject function"
+    fi
 }
